@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,11 +17,13 @@ import {
   QrCode,
   Bell,
   BellOff,
-  ShoppingBag,
   AlertCircle,
   CreditCard,
   ChevronDown,
   ChevronUp,
+  X,
+  Truck,
+  Timer,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -40,13 +42,15 @@ interface OrderProduct {
   id: number;
   name: string;
   price: number;
+  isKit?: boolean;
 }
 
 interface KitSelection {
   id: number;
-  productName: string;
-  selectedColor: string | null;
-  selectedSize: string | null;
+  componentName: string;
+  color: string | null;
+  size: string | null;
+  quantity: number;
 }
 
 interface OrderItem {
@@ -57,6 +61,7 @@ interface OrderItem {
   gender: string | null;
   size: string | null;
   color: string | null;
+  colorId: number | null;
   unitPrice: number;
   product: OrderProduct | null;
   imageUrl: string | null;
@@ -75,15 +80,20 @@ interface Installment {
   pixExpiresAt: string | null;
 }
 
+interface ComboDetail {
+  name: string;
+  discount: number;
+}
+
 interface SharedOrder {
   id: number;
   orderCode: string;
-  userId: number;
   totalAmount: number;
   subtotalAmount: number | null;
   promoDiscount: number | null;
   comboDiscount: number | null;
   comboNames: string | null;
+  comboDetails?: ComboDetail[];
   promoCode: string | null;
   paymentStatus: string;
   orderStatus: string;
@@ -96,15 +106,39 @@ interface SharedOrder {
   customerName: string | null;
 }
 
-const orderStatusLabels: Record<string, { label: string; color: string; icon: typeof Package }> = {
-  awaiting_payment: { label: "Aguardando Pagamento", color: "bg-yellow-100 text-yellow-800", icon: Clock },
-  installment_payment: { label: "Pagamento Parcelado", color: "bg-blue-100 text-blue-800", icon: CreditCard },
-  paid: { label: "Pago", color: "bg-green-100 text-green-800", icon: CheckCircle },
-  producing: { label: "Em Produção", color: "bg-purple-100 text-purple-800", icon: Package },
-  ready: { label: "Pronto para Retirada", color: "bg-emerald-100 text-emerald-800", icon: CheckCircle },
-  delivered: { label: "Entregue", color: "bg-gray-100 text-gray-800", icon: CheckCircle },
-  cancelled: { label: "Cancelado", color: "bg-red-100 text-red-800", icon: XCircle },
+const orderStatusLabels: Record<string, { label: string; color: string; bgColor: string; icon: typeof Package }> = {
+  awaiting_payment: { label: "Aguardando Pagamento", color: "text-yellow-700", bgColor: "bg-yellow-50 border-yellow-200", icon: Clock },
+  installment_payment: { label: "Pagamento Parcelado", color: "text-blue-700", bgColor: "bg-blue-50 border-blue-200", icon: CreditCard },
+  paid: { label: "Pago", color: "text-green-700", bgColor: "bg-green-50 border-green-200", icon: CheckCircle },
+  producing: { label: "Em Produção", color: "text-purple-700", bgColor: "bg-purple-50 border-purple-200", icon: Package },
+  ready: { label: "Pronto para Retirada", color: "text-emerald-700", bgColor: "bg-emerald-50 border-emerald-200", icon: Truck },
+  delivered: { label: "Entregue", color: "text-gray-700", bgColor: "bg-gray-50 border-gray-200", icon: CheckCircle },
+  cancelled: { label: "Cancelado", color: "text-red-700", bgColor: "bg-red-50 border-red-200", icon: XCircle },
 };
+
+let cachedVapidKey: string | null = null;
+
+async function getVapidPublicKey(): Promise<string> {
+  if (cachedVapidKey) return cachedVapidKey;
+  const envKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
+  if (envKey) {
+    cachedVapidKey = envKey;
+    return envKey;
+  }
+  try {
+    const response = await fetch('/api/push/vapid-key');
+    if (response.ok) {
+      const data = await response.json();
+      if (data.publicKey) {
+        cachedVapidKey = data.publicKey;
+        return data.publicKey;
+      }
+    }
+  } catch (e) {
+    console.error('[Push] Failed to fetch VAPID key:', e);
+  }
+  return '';
+}
 
 export default function PedidoCompartilhado() {
   const params = useParams<{ token: string }>();
@@ -119,10 +153,13 @@ export default function PedidoCompartilhado() {
     installmentId?: number;
     installmentNumber?: number;
   } | null>(null);
+  const [showPixModal, setShowPixModal] = useState(false);
   const [copied, setCopied] = useState(false);
   const [timeLeft, setTimeLeft] = useState(0);
-  const [notificationState, setNotificationState] = useState<"idle" | "subscribing" | "subscribed" | "denied">("idle");
+  const [notificationState, setNotificationState] = useState<"idle" | "subscribing" | "subscribed" | "denied" | "syncing">("idle");
   const [showInstallments, setShowInstallments] = useState(false);
+  const [showNotifPopup, setShowNotifPopup] = useState(false);
+  const notifPromptShown = useRef(false);
 
   const { data, isLoading, error, refetch } = useQuery<{ order: SharedOrder }>({
     queryKey: ["/api/shop/orders/share", token],
@@ -136,6 +173,60 @@ export default function PedidoCompartilhado() {
   });
 
   const order = data?.order;
+
+  useEffect(() => {
+    if (!order || notifPromptShown.current) return;
+    notifPromptShown.current = true;
+
+    const initPushState = async () => {
+      if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) {
+        return;
+      }
+
+      if (Notification.permission === "denied") {
+        setNotificationState("denied");
+        return;
+      }
+
+      if (Notification.permission === "granted") {
+        setNotificationState("syncing");
+        try {
+          const registration = await navigator.serviceWorker.ready;
+          const subscription = await registration.pushManager.getSubscription();
+          if (subscription) {
+            const subJson = subscription.toJSON();
+            if (subJson.keys?.p256dh && subJson.keys?.auth) {
+              const res = await fetch(`/api/shop/orders/share/${token}/subscribe-push`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  endpoint: subJson.endpoint,
+                  p256dh: subJson.keys.p256dh,
+                  auth: subJson.keys.auth,
+                }),
+              });
+              if (res.ok) {
+                setNotificationState("subscribed");
+                return;
+              }
+            }
+          }
+          setShowNotifPopup(true);
+          setNotificationState("idle");
+        } catch {
+          setShowNotifPopup(true);
+          setNotificationState("idle");
+        }
+      } else {
+        const timer = setTimeout(() => {
+          setShowNotifPopup(true);
+        }, 1500);
+        return () => clearTimeout(timer);
+      }
+    };
+
+    initPushState();
+  }, [order, token]);
 
   const generatePixMutation = useMutation({
     mutationFn: async (installmentId?: number) => {
@@ -152,6 +243,7 @@ export default function PedidoCompartilhado() {
     },
     onSuccess: (data) => {
       setPixData(data);
+      setShowPixModal(true);
     },
     onError: (err: Error) => {
       toast({
@@ -171,6 +263,7 @@ export default function PedidoCompartilhado() {
       setTimeLeft(diff);
       if (diff <= 0) {
         setPixData(null);
+        setShowPixModal(false);
       }
     }, 1000);
     return () => clearInterval(interval);
@@ -179,6 +272,7 @@ export default function PedidoCompartilhado() {
   useEffect(() => {
     if (order && pixData && order.paymentStatus === "paid") {
       setPixData(null);
+      setShowPixModal(false);
       toast({
         title: "Pagamento Confirmado!",
         description: "Seu pagamento foi aprovado com sucesso.",
@@ -215,8 +309,7 @@ export default function PedidoCompartilhado() {
       }
 
       const registration = await navigator.serviceWorker.ready;
-      const envKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
-      const vapidKey = envKey || "";
+      const vapidKey = await getVapidPublicKey();
       if (!vapidKey) {
         toast({ title: "Chave de notificação não configurada", variant: "destructive" });
         setNotificationState("idle");
@@ -241,7 +334,8 @@ export default function PedidoCompartilhado() {
 
       if (res.ok) {
         setNotificationState("subscribed");
-        toast({ title: "Notificações ativadas! Você será avisado sobre atualizações do pedido." });
+        setShowNotifPopup(false);
+        toast({ title: "Notificações ativadas!", description: "Você será avisado sobre atualizações do pedido." });
       } else {
         throw new Error("Falha ao registrar");
       }
@@ -251,12 +345,6 @@ export default function PedidoCompartilhado() {
       toast({ title: "Erro ao ativar notificações", variant: "destructive" });
     }
   }, [token]);
-
-  useEffect(() => {
-    if ("Notification" in window && Notification.permission === "denied") {
-      setNotificationState("denied");
-    }
-  }, []);
 
   const formatMoney = (cents: number) => `R$ ${(cents / 100).toFixed(2).replace(".", ",")}`;
   const formatDate = (date: string) => new Date(date).toLocaleDateString("pt-BR");
@@ -268,7 +356,7 @@ export default function PedidoCompartilhado() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-4" data-testid="loading-skeleton">
+      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-orange-50 p-4" data-testid="loading-skeleton">
         <div className="max-w-lg mx-auto space-y-4 pt-8">
           <Skeleton className="h-10 w-48 mx-auto" />
           <Skeleton className="h-40 w-full rounded-xl" />
@@ -281,8 +369,8 @@ export default function PedidoCompartilhado() {
 
   if (error || !order) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-4">
-        <Card className="max-w-md w-full text-center">
+      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-orange-50 flex items-center justify-center p-4">
+        <Card className="max-w-md w-full text-center shadow-lg">
           <CardContent className="pt-8 pb-6 space-y-4">
             <AlertCircle className="w-16 h-16 text-red-400 mx-auto" />
             <h2 className="text-xl font-semibold text-gray-700" data-testid="text-error-title">Pedido não encontrado</h2>
@@ -303,31 +391,150 @@ export default function PedidoCompartilhado() {
   const paidInstallments = order.installments?.filter((i) => i.status === "paid") || [];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      <div className="max-w-lg mx-auto px-4 py-6 space-y-4">
-        <div className="text-center space-y-2">
-          <div className="flex items-center justify-center gap-2">
-            <ShoppingBag className="w-6 h-6 text-primary" />
-            <h1 className="text-xl font-bold text-gray-800" data-testid="text-page-title">Emaustore</h1>
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-orange-50">
+      {showNotifPopup && notificationState !== "subscribed" && notificationState !== "denied" && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={() => setShowNotifPopup(false)}>
+          <div 
+            className="bg-white w-full sm:w-auto sm:max-w-sm rounded-t-2xl sm:rounded-2xl p-6 shadow-2xl animate-in slide-in-from-bottom duration-300 sm:animate-in sm:fade-in sm:zoom-in-95"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-start mb-4">
+              <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center">
+                <Bell className="w-6 h-6 text-amber-600" />
+              </div>
+              <button 
+                onClick={() => setShowNotifPopup(false)} 
+                className="p-1 rounded-full hover:bg-gray-100 transition-colors"
+                data-testid="button-close-notif-popup"
+              >
+                <X className="w-5 h-5 text-gray-400" />
+              </button>
+            </div>
+            <h3 className="text-lg font-bold text-gray-900 mb-1">
+              Ative as notificações
+            </h3>
+            <p className="text-sm text-gray-500 mb-5">
+              Receba alertas quando seu pagamento for confirmado, quando o pedido entrar em produção e quando estiver pronto para retirada.
+            </p>
+            <Button
+              onClick={subscribeToPush}
+              disabled={notificationState === "subscribing"}
+              className="w-full h-12 bg-amber-500 hover:bg-amber-600 text-white font-semibold rounded-xl"
+              data-testid="button-popup-enable-notifications"
+            >
+              {notificationState === "subscribing" ? (
+                <Loader2 className="w-5 h-5 animate-spin mr-2" />
+              ) : (
+                <Bell className="w-5 h-5 mr-2" />
+              )}
+              Ativar notificações
+            </Button>
+            <button 
+              onClick={() => setShowNotifPopup(false)}
+              className="w-full mt-3 text-sm text-gray-400 hover:text-gray-600 transition-colors py-2"
+              data-testid="button-dismiss-notif-popup"
+            >
+              Agora não
+            </button>
           </div>
+        </div>
+      )}
+
+      {showPixModal && pixData && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={() => setShowPixModal(false)}>
+          <div 
+            className="bg-white w-full sm:w-auto sm:max-w-md rounded-t-2xl sm:rounded-2xl shadow-2xl animate-in slide-in-from-bottom duration-300 sm:animate-in sm:fade-in sm:zoom-in-95 max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-6 space-y-4">
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-bold text-gray-900">
+                  {pixData.type === "installment"
+                    ? `Pagar Parcela ${pixData.installmentNumber}`
+                    : "Pagar Pedido"}
+                </h3>
+                <button
+                  onClick={() => setShowPixModal(false)}
+                  className="p-1 rounded-full hover:bg-gray-100 transition-colors"
+                  data-testid="button-close-pix-modal"
+                >
+                  <X className="w-5 h-5 text-gray-400" />
+                </button>
+              </div>
+
+              <div className="text-center py-2">
+                <p className="text-3xl font-bold text-amber-600" data-testid="text-pix-amount">
+                  R$ {pixData.amount.toFixed(2).replace(".", ",")}
+                </p>
+              </div>
+
+              {pixData.qrCodeBase64 && (
+                <div className="flex justify-center">
+                  <div className="bg-white p-3 rounded-xl border-2 border-gray-100">
+                    <img
+                      src={`data:image/png;base64,${pixData.qrCodeBase64}`}
+                      alt="QR Code PIX"
+                      className="w-52 h-52 sm:w-56 sm:h-56"
+                      data-testid="img-pix-qr"
+                    />
+                  </div>
+                </div>
+              )}
+
+              <Button
+                onClick={copyPixCode}
+                variant="outline"
+                className="w-full h-12 rounded-xl font-medium"
+                data-testid="button-copy-pix"
+              >
+                {copied ? (
+                  <>
+                    <Check className="w-5 h-5 mr-2 text-green-500" />
+                    Copiado!
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-5 h-5 mr-2" />
+                    Copiar código PIX
+                  </>
+                )}
+              </Button>
+
+              <div className="flex items-center justify-center gap-2 text-sm text-gray-400 pb-2">
+                <Timer className="w-4 h-4" />
+                Expira em {formatTime(timeLeft)}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="max-w-lg mx-auto px-4 py-6 space-y-4">
+        <div className="text-center space-y-2 pb-1">
+          <img 
+            src="/emaustore-logo-dark.png" 
+            alt="Emaústore" 
+            className="h-8 w-auto mx-auto"
+            data-testid="img-emaustore-logo"
+          />
           <p className="text-sm text-gray-500" data-testid="text-order-code">
             Pedido #{order.orderCode}
           </p>
           {order.customerName && (
-            <p className="text-sm text-gray-600 font-medium" data-testid="text-customer-name">
+            <p className="text-base text-gray-700 font-semibold" data-testid="text-customer-name">
               {order.customerName}
             </p>
           )}
         </div>
 
-        <Card className="overflow-hidden" data-testid="card-order-status">
+        <Card className={cn("overflow-hidden border shadow-sm", statusInfo.bgColor)} data-testid="card-order-status">
           <CardContent className="pt-4 pb-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <StatusIcon className={cn("w-5 h-5", statusInfo.color.includes("green") ? "text-green-600" : statusInfo.color.includes("yellow") ? "text-yellow-600" : statusInfo.color.includes("red") ? "text-red-600" : statusInfo.color.includes("purple") ? "text-purple-600" : statusInfo.color.includes("blue") ? "text-blue-600" : "text-gray-600")} />
+                <StatusIcon className={cn("w-5 h-5", statusInfo.color)} />
                 <span className="font-medium text-gray-700">Status</span>
               </div>
-              <Badge className={cn(statusInfo.color, "text-xs")} data-testid="badge-order-status">
+              <Badge className={cn("text-xs font-semibold px-3 py-1", statusInfo.bgColor, statusInfo.color, "border")} data-testid="badge-order-status">
                 {statusInfo.label}
               </Badge>
             </div>
@@ -337,58 +544,73 @@ export default function PedidoCompartilhado() {
           </CardContent>
         </Card>
 
-        <Card data-testid="card-order-items">
+        <Card className="shadow-sm" data-testid="card-order-items">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-semibold text-gray-600 flex items-center gap-2">
               <Package className="w-4 h-4" />
               Itens do Pedido
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-4">
             {order.items.map((item) => (
               <div key={item.id} className="flex gap-3 items-start" data-testid={`item-order-${item.id}`}>
                 {item.imageUrl ? (
                   <img
                     src={item.imageUrl}
                     alt={item.product?.name || "Produto"}
-                    className="w-14 h-14 rounded-lg object-cover border"
+                    className="w-16 h-16 rounded-xl object-cover border flex-shrink-0"
+                    loading="lazy"
                   />
                 ) : (
-                  <div className="w-14 h-14 rounded-lg bg-gray-100 flex items-center justify-center border">
-                    <Package className="w-6 h-6 text-gray-300" />
+                  <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-amber-50 to-orange-100 flex items-center justify-center border flex-shrink-0">
+                    <Package className="w-7 h-7 text-amber-300" />
                   </div>
                 )}
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-sm text-gray-800 truncate">
+                  <p className="font-semibold text-sm text-gray-800">
                     {item.product?.name || "Produto"}
                   </p>
-                  <div className="flex flex-wrap gap-1 mt-0.5">
-                    {item.size && (
-                      <span className="text-xs text-gray-500">Tam: {item.size}</span>
-                    )}
-                    {item.color && (
-                      <span className="text-xs text-gray-500">
-                        {item.size ? " | " : ""}Cor: {item.color}
-                      </span>
-                    )}
-                    {item.gender && (
-                      <span className="text-xs text-gray-500">
-                        {(item.size || item.color) ? " | " : ""}{item.gender}
-                      </span>
-                    )}
-                  </div>
-                  {item.kitSelections?.length > 0 && (
-                    <div className="mt-1 space-y-0.5">
+                  
+                  {!item.product?.isKit && (
+                    <div className="flex flex-wrap gap-1 mt-0.5">
+                      {item.size && (
+                        <span className="text-xs text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">Tam: {item.size}</span>
+                      )}
+                      {item.color && (
+                        <span className="text-xs text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">Cor: {item.color}</span>
+                      )}
+                      {item.gender && item.gender !== "unissex" && (
+                        <span className="text-xs text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">
+                          {item.gender === "male" ? "Masculino" : item.gender === "female" ? "Feminino" : item.gender}
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  {item.kitSelections && item.kitSelections.length > 0 && (
+                    <div className="mt-1.5 space-y-1 pl-2 border-l-2 border-amber-200">
                       {item.kitSelections.map((ks) => (
-                        <p key={ks.id} className="text-xs text-gray-400">
-                          {ks.productName}: {ks.selectedColor}{ks.selectedSize ? ` - ${ks.selectedSize}` : ""}
-                        </p>
+                        <div key={ks.id} className="text-xs text-gray-600">
+                          <span className="font-medium text-gray-700">{ks.componentName}</span>
+                          <div className="flex flex-wrap gap-1 mt-0.5">
+                            {ks.size && (
+                              <span className="text-gray-500 bg-gray-50 px-1.5 py-0.5 rounded">Tam: {ks.size}</span>
+                            )}
+                            {ks.color && (
+                              <span className="text-gray-500 bg-gray-50 px-1.5 py-0.5 rounded">Cor: {ks.color}</span>
+                            )}
+                            {ks.quantity > 1 && (
+                              <span className="text-gray-500 bg-gray-50 px-1.5 py-0.5 rounded">{ks.quantity}x</span>
+                            )}
+                          </div>
+                        </div>
                       ))}
                     </div>
                   )}
-                  <div className="flex items-center justify-between mt-1">
-                    <span className="text-xs text-gray-400">{item.quantity}x</span>
-                    <span className="text-sm font-medium text-gray-700">
+
+                  <div className="flex items-center justify-between mt-1.5">
+                    <span className="text-xs text-gray-400 font-medium">{item.quantity}x</span>
+                    <span className="text-sm font-bold text-gray-700">
                       {formatMoney(item.unitPrice * item.quantity)}
                     </span>
                   </div>
@@ -396,26 +618,35 @@ export default function PedidoCompartilhado() {
               </div>
             ))}
 
-            <div className="border-t pt-3 space-y-1">
-              {order.subtotalAmount && order.subtotalAmount !== order.totalAmount && (
+            <div className="border-t pt-3 space-y-1.5">
+              {(order.subtotalAmount != null && order.subtotalAmount > 0 && order.subtotalAmount !== order.totalAmount) && (
                 <div className="flex justify-between text-xs text-gray-500">
                   <span>Subtotal</span>
                   <span>{formatMoney(order.subtotalAmount)}</span>
                 </div>
               )}
-              {order.promoDiscount && order.promoDiscount > 0 && (
+              {(order.promoDiscount != null && order.promoDiscount > 0) && (
                 <div className="flex justify-between text-xs text-green-600">
                   <span>Desconto{order.promoCode ? ` (${order.promoCode})` : ""}</span>
                   <span>-{formatMoney(order.promoDiscount)}</span>
                 </div>
               )}
-              {order.comboDiscount && order.comboDiscount > 0 && (
-                <div className="flex justify-between text-xs text-green-600">
-                  <span>Combo{order.comboNames ? ` (${order.comboNames})` : ""}</span>
-                  <span>-{formatMoney(order.comboDiscount)}</span>
-                </div>
+              {order.comboDetails && order.comboDetails.length > 0 ? (
+                order.comboDetails.map((combo, idx) => (
+                  <div key={idx} className="flex justify-between text-xs text-green-600">
+                    <span>Combo ({combo.name})</span>
+                    <span>-{formatMoney(combo.discount)}</span>
+                  </div>
+                ))
+              ) : (
+                (order.comboDiscount != null && order.comboDiscount > 0) && (
+                  <div className="flex justify-between text-xs text-green-600">
+                    <span>Combo{order.comboNames ? ` (${order.comboNames})` : ""}</span>
+                    <span>-{formatMoney(order.comboDiscount)}</span>
+                  </div>
+                )
               )}
-              <div className="flex justify-between font-bold text-gray-800" data-testid="text-total-amount">
+              <div className="flex justify-between font-bold text-gray-800 text-base pt-1" data-testid="text-total-amount">
                 <span>Total</span>
                 <span>{formatMoney(order.totalAmount)}</span>
               </div>
@@ -424,7 +655,7 @@ export default function PedidoCompartilhado() {
         </Card>
 
         {isInstallment && order.installments?.length > 0 && (
-          <Card data-testid="card-installments">
+          <Card className="shadow-sm" data-testid="card-installments">
             <CardHeader className="pb-2 cursor-pointer" onClick={() => setShowInstallments(!showInstallments)}>
               <CardTitle className="text-sm font-semibold text-gray-600 flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -440,27 +671,28 @@ export default function PedidoCompartilhado() {
                   <div
                     key={inst.id}
                     className={cn(
-                      "flex items-center justify-between p-2 rounded-lg text-sm",
-                      inst.status === "paid" ? "bg-green-50" : "bg-gray-50"
+                      "flex items-center justify-between p-3 rounded-xl text-sm",
+                      inst.status === "paid" ? "bg-green-50 border border-green-100" : "bg-gray-50 border border-gray-100"
                     )}
                     data-testid={`installment-${inst.id}`}
                   >
                     <div>
-                      <span className="font-medium">
+                      <span className="font-semibold block">
                         Parcela {inst.installmentNumber}/{order.installments.length}
                       </span>
-                      <span className="text-xs text-gray-400 ml-2">
+                      <span className="text-xs text-gray-400">
                         Vence: {formatDate(inst.dueDate)}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="font-medium">{formatMoney(inst.amount)}</span>
+                      <span className="font-bold text-sm">{formatMoney(inst.amount)}</span>
                       {inst.status === "paid" ? (
-                        <CheckCircle className="w-4 h-4 text-green-500" />
+                        <CheckCircle className="w-5 h-5 text-green-500" />
                       ) : canPay ? (
                         <Button
                           size="sm"
                           variant="outline"
+                          className="rounded-lg"
                           onClick={() => generatePixMutation.mutate(inst.id)}
                           disabled={generatePixMutation.isPending}
                           data-testid={`button-pay-installment-${inst.id}`}
@@ -483,63 +715,11 @@ export default function PedidoCompartilhado() {
           </Card>
         )}
 
-        {pixData && (
-          <Card className="border-2 border-primary/20" data-testid="card-pix-payment">
-            <CardContent className="pt-4 space-y-4">
-              <div className="text-center">
-                <h3 className="font-semibold text-gray-800">
-                  {pixData.type === "installment"
-                    ? `Pagar Parcela ${pixData.installmentNumber}`
-                    : "Pagar Pedido"}
-                </h3>
-                <p className="text-2xl font-bold text-primary mt-1" data-testid="text-pix-amount">
-                  R$ {pixData.amount.toFixed(2).replace(".", ",")}
-                </p>
-              </div>
-
-              {pixData.qrCodeBase64 && (
-                <div className="flex justify-center">
-                  <img
-                    src={`data:image/png;base64,${pixData.qrCodeBase64}`}
-                    alt="QR Code PIX"
-                    className="w-48 h-48 rounded-lg"
-                    data-testid="img-pix-qr"
-                  />
-                </div>
-              )}
-
-              <Button
-                onClick={copyPixCode}
-                variant="outline"
-                className="w-full"
-                data-testid="button-copy-pix"
-              >
-                {copied ? (
-                  <>
-                    <Check className="w-4 h-4 mr-2 text-green-500" />
-                    Copiado!
-                  </>
-                ) : (
-                  <>
-                    <Copy className="w-4 h-4 mr-2" />
-                    Copiar código PIX
-                  </>
-                )}
-              </Button>
-
-              <div className="text-center text-xs text-gray-400 flex items-center justify-center gap-1">
-                <Clock className="w-3 h-3" />
-                Expira em {formatTime(timeLeft)}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {canPay && !isInstallment && !pixData && (
+        {canPay && !isInstallment && (
           <Button
             onClick={() => generatePixMutation.mutate()}
             disabled={generatePixMutation.isPending}
-            className="w-full h-12 text-base"
+            className="w-full h-14 text-base font-semibold bg-amber-500 hover:bg-amber-600 text-white rounded-xl shadow-lg shadow-amber-200/50"
             data-testid="button-generate-pix"
           >
             {generatePixMutation.isPending ? (
@@ -556,55 +736,37 @@ export default function PedidoCompartilhado() {
           </Button>
         )}
 
-        {notificationState !== "subscribed" && notificationState !== "denied" && (
-          <Card className="bg-blue-50/50 border-blue-100" data-testid="card-notification-prompt">
-            <CardContent className="pt-4 pb-4">
-              <div className="flex items-start gap-3">
-                <Bell className="w-5 h-5 text-blue-500 mt-0.5 shrink-0" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-gray-700">
-                    Receba atualizações do pedido
-                  </p>
-                  <p className="text-xs text-gray-500 mt-0.5">
-                    Saiba quando o pagamento for confirmado e o pedido ficar pronto.
-                  </p>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="mt-2"
-                    onClick={subscribeToPush}
-                    disabled={notificationState === "subscribing"}
-                    data-testid="button-enable-notifications"
-                  >
-                    {notificationState === "subscribing" ? (
-                      <Loader2 className="w-3 h-3 animate-spin mr-1" />
-                    ) : (
-                      <Bell className="w-3 h-3 mr-1" />
-                    )}
-                    Ativar notificações
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
         {notificationState === "subscribed" && (
-          <div className="flex items-center justify-center gap-2 text-xs text-green-600" data-testid="text-notifications-active">
-            <CheckCircle className="w-3 h-3" />
+          <div className="flex items-center justify-center gap-2 text-xs text-green-600 py-2" data-testid="text-notifications-active">
+            <CheckCircle className="w-4 h-4" />
             Notificações ativadas
           </div>
         )}
 
+        {notificationState !== "subscribed" && notificationState !== "denied" && notificationState !== "syncing" && (
+          <button
+            onClick={() => setShowNotifPopup(true)}
+            className="w-full flex items-center justify-center gap-2 text-sm text-amber-600 hover:text-amber-700 py-3 transition-colors"
+            data-testid="button-show-notif-prompt"
+          >
+            <Bell className="w-4 h-4" />
+            Ativar notificações do pedido
+          </button>
+        )}
+
         {notificationState === "denied" && (
-          <div className="flex items-center justify-center gap-2 text-xs text-gray-400" data-testid="text-notifications-denied">
+          <div className="flex items-center justify-center gap-2 text-xs text-gray-400 py-2" data-testid="text-notifications-denied">
             <BellOff className="w-3 h-3" />
             Notificações bloqueadas no navegador
           </div>
         )}
 
         <div className="text-center text-xs text-gray-400 pt-4 pb-6">
-          UMP Emaús - Emaustore
+          <img 
+            src="/emaustore-logo-dark.png" 
+            alt="Emaústore" 
+            className="h-5 w-auto mx-auto opacity-40"
+          />
         </div>
       </div>
     </div>

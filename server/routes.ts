@@ -14258,33 +14258,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const orderItems = await storage.getShopOrderItems(order.id);
-      const itemsWithProducts = await Promise.all(
-        orderItems.map(async (item) => {
-          const product = await storage.getShopItemById(item.itemId);
-          const images = await storage.getShopItemImages(item.itemId);
-          const kitSelections = await storage.getOrderItemKitSelections(item.id);
-          const imageUrl = images[0]?.imageUrl || null;
-          const safeImageUrl = imageUrl && imageUrl.startsWith('/') ? imageUrl : (imageUrl ? `/api/shop/images/item/${images[0]?.id}` : null);
-          return {
-            id: item.id,
-            orderId: item.orderId,
-            itemId: item.itemId,
-            quantity: item.quantity,
-            gender: item.gender,
-            size: item.size,
-            color: item.color,
-            unitPrice: item.unitPrice,
-            product: product ? { id: product.id, name: product.name, price: product.price } : null,
-            imageUrl: safeImageUrl,
-            kitSelections: kitSelections.map(ks => ({
-              id: ks.id,
-              productName: ks.productName,
-              selectedColor: ks.selectedColor,
-              selectedSize: ks.selectedSize,
-            })),
-          };
-        })
-      );
+      const allItemIds = Array.from(new Set(orderItems.map(i => i.itemId)));
+      const allOrderItemIds = orderItems.map(i => i.id);
+      
+      const [products, imagesMap, colorImagesMap, kitSelectionsMap] = await Promise.all([
+        storage.getShopItemsByIds(allItemIds),
+        storage.getShopItemImagesByItemIdsLight(allItemIds),
+        storage.getShopItemColorImagesByItemIds(allItemIds),
+        allOrderItemIds.length > 0 ? storage.getOrderItemKitSelectionsByOrderItemIds(allOrderItemIds) : Promise.resolve(new Map()),
+      ]);
+      const productsMap = new Map(products.map(p => [p.id, p]));
+      
+      const itemsWithProducts = orderItems.map((item) => {
+        const product = productsMap.get(item.itemId);
+        const images = product ? (imagesMap.get(product.id) || []) : [];
+        const firstImageId = images[0]?.id || null;
+        
+        let imageUrl: string | null = firstImageId ? `/api/shop/images/item/${firstImageId}` : null;
+        if (item.colorId && product) {
+          const allColorImages = colorImagesMap.get(product.id) || [];
+          const matchingColorImg = allColorImages.find(
+            ci => ci.colorId === item.colorId && (ci.gender === item.gender || ci.gender === "unissex")
+          ) || allColorImages.find(ci => ci.colorId === item.colorId);
+          if (matchingColorImg) {
+            imageUrl = `/api/shop/images/color/${matchingColorImg.id}`;
+          }
+        }
+        
+        const kitSelections = kitSelectionsMap.get(item.id) || [];
+        
+        return {
+          id: item.id,
+          orderId: item.orderId,
+          itemId: item.itemId,
+          quantity: item.quantity,
+          gender: item.gender,
+          size: item.size,
+          color: item.color,
+          colorId: item.colorId,
+          unitPrice: item.unitPrice,
+          product: product ? { id: product.id, name: product.name, price: product.price, isKit: product.isKit } : null,
+          imageUrl,
+          kitSelections: kitSelections.map(ks => ({
+            id: ks.id,
+            componentName: ks.componentName,
+            color: ks.color,
+            size: ks.size,
+            quantity: ks.quantity,
+          })),
+        };
+      });
 
       const installments = await storage.getShopInstallments(order.id);
 
@@ -14308,6 +14331,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         pixExpiresAt: inst.pixExpiresAt,
       }));
 
+      let comboDetails: { name: string; discount: number }[] = [];
+      if (order.comboNames && order.comboDiscount && order.comboDiscount > 0) {
+        const comboNamesList = order.comboNames.split(", ").map(n => n.trim());
+        if (comboNamesList.length > 1) {
+          const allCombos = await storage.getShopComboDiscounts();
+          comboDetails = comboNamesList.map(name => {
+            const combo = allCombos.find(c => c.name === name);
+            return { name, discount: combo?.discountValue || 0 };
+          }).filter(c => c.discount > 0);
+        }
+      }
+
       res.json({
         order: {
           id: order.id,
@@ -14317,6 +14352,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           promoDiscount: order.promoDiscount,
           comboDiscount: order.comboDiscount,
           comboNames: order.comboNames,
+          comboDetails: comboDetails.length > 0 ? comboDetails : undefined,
           promoCode: order.promoCode,
           paymentStatus: order.paymentStatus,
           orderStatus: order.orderStatus,

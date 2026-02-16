@@ -636,6 +636,7 @@ export default function TesourariaMovimentacoes() {
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
+              </div>
             </div>
           </motion.div>
         </div>

@@ -1,0 +1,123 @@
+Spaces
+Hugging Face's logo
+Umpemaus
+/
+umpemaus 
+
+like
+0
+
+
+Logs
+
+build
+container
+
+Logs Endpoint
+
+
+
+===== Build Queued at 2026-02-16 01:41:10 / Commit SHA: 2f84323 =====
+
+--> FROM docker.io/library/node:20-slim@sha256:c6585df72c34172bebd8d36abed961e231d7d3b5cee2e01294c4495e8a03f687
+DONE 0.0s
+
+--> COPY package*.json ./
+CACHED
+
+--> RUN apt-get update && apt-get install -y     chromium     fonts-liberation     fonts-noto-color-emoji     libasound2     libatk-bridge2.0-0     libatk1.0-0     libcups2     libdbus-1-3     libdrm2     libgbm1     libgtk-3-0     libnspr4     libnss3     libx11-xcb1     libxcomposite1     libxdamage1     libxrandr2     xdg-utils     --no-install-recommends     && rm -rf /var/lib/apt/lists/*
+CACHED
+
+--> WORKDIR /app
+CACHED
+
+--> RUN npm install --legacy-peer-deps
+CACHED
+
+--> Restoring cache
+DONE 12.6s
+
+--> COPY . .
+DONE 2.2s
+
+--> RUN npm run build
+
+> rest-express@1.0.0 build
+> vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
+
+vite v5.4.21 building for production...
+transforming...
+
+A PostCSS plugin did not pass the `from` option to `postcss.parse`. This may cause imported assets to be incorrectly transformed. If you've recently added a PostCSS plugin that raised this warning, please contact the package author to fix the issue.
+✓ 101 modules transformed.
+x Build failed in 2.82s
+error during build:
+[vite:esbuild] Transform failed with 6 errors:
+/app/client/src/pages/admin/tesouraria/TesourariaMovimentacoes.tsx:640:12: ERROR: Unexpected closing "motion.div" tag does not match opening "div" tag
+/app/client/src/pages/admin/tesouraria/TesourariaMovimentacoes.tsx:641:10: ERROR: Unexpected closing "div" tag does not match opening "motion.div" tag
+/app/client/src/pages/admin/tesouraria/TesourariaMovimentacoes.tsx:642:8: ERROR: Unexpected closing "section" tag does not match opening "div" tag
+/app/client/src/pages/admin/tesouraria/TesourariaMovimentacoes.tsx:1230:6: ERROR: Unexpected closing "div" tag does not match opening "section" tag
+/app/client/src/pages/admin/tesouraria/TesourariaMovimentacoes.tsx:1232:0: ERROR: The character "}" is not valid inside a JSX element
+...
+file: /app/client/src/pages/admin/tesouraria/TesourariaMovimentacoes.tsx:640:12
+
+Unexpected closing "motion.div" tag does not match opening "div" tag
+638|                </Dialog>
+639|              </div>
+640|            </motion.div>
+   |              ^
+641|          </div>
+642|        </section>
+
+Unexpected closing "div" tag does not match opening "motion.div" tag
+639|              </div>
+640|            </motion.div>
+641|          </div>
+   |            ^
+642|        </section>
+643|  
+
+Unexpected closing "section" tag does not match opening "div" tag
+640|            </motion.div>
+641|          </div>
+642|        </section>
+   |          ^
+643|  
+644|        <section className="py-6 bg-background">
+
+Unexpected closing "div" tag does not match opening "section" tag
+1228|          </DialogContent>
+1229|        </Dialog>
+1230|      </div>
+   |        ^
+1231|    );
+1232|  }
+
+The character "}" is not valid inside a JSX element
+1230|      </div>
+1231|    );
+1232|  }
+   |  ^
+1233|  
+
+Unexpected end of file before a closing "div" tag
+1231|    );
+1232|  }
+1233|  
+   |  ^
+
+    at failureErrorWithLog (/app/node_modules/vite/node_modules/esbuild/lib/main.js:1472:15)
+    at /app/node_modules/vite/node_modules/esbuild/lib/main.js:755:50
+    at responseCallbacks.<computed> (/app/node_modules/vite/node_modules/esbuild/lib/main.js:622:9)
+    at handleIncomingPacket (/app/node_modules/vite/node_modules/esbuild/lib/main.js:677:12)
+    at Socket.readFromStdout (/app/node_modules/vite/node_modules/esbuild/lib/main.js:600:7)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at Pipe.onStreamRead (node:internal/stream_base_commons:191:23)
+
+--> ERROR: process "/bin/sh -c npm run build" did not complete successfully: exit code: 1
+
+ 
+Building...

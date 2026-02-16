@@ -13272,23 +13272,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
               const existingPayments = await storage.getMemberUmpPaymentsByYear(userId, year);
               const paidMonths = new Set(existingPayments.map(p => p.month));
               
+              const startMonth = referenceMonth || 1;
               const monthsToPay: number[] = [];
-              for (let m = 1; m <= 12 && monthsToPay.length < monthsCount; m++) {
+              for (let m = startMonth; m <= 12 && monthsToPay.length < monthsCount; m++) {
                 if (!paidMonths.has(m)) {
                   monthsToPay.push(m);
+                }
+              }
+              if (monthsToPay.length < monthsCount && startMonth > 1) {
+                for (let m = 1; m < startMonth && monthsToPay.length < monthsCount; m++) {
+                  if (!paidMonths.has(m)) {
+                    monthsToPay.push(m);
+                  }
                 }
               }
               
               const referenceMonthsArr: number[] = [];
               for (const month of monthsToPay) {
-                await storage.createMemberUmpPayment({
-                  userId,
-                  year,
-                  month,
-                  amount: monthlyAmount,
-                  paidAt: now,
-                  entryId: entry.id,
-                });
+                const existing = existingPayments.find(p => p.month === month);
+                if (existing) {
+                  await storage.updateMemberUmpPayment(existing.id, {
+                    amount: monthlyAmount,
+                    paidAt: now,
+                    entryId: entry.id,
+                  });
+                } else {
+                  await storage.createMemberUmpPayment({
+                    userId,
+                    year,
+                    month,
+                    amount: monthlyAmount,
+                    paidAt: now,
+                    entryId: entry.id,
+                  });
+                }
                 referenceMonthsArr.push(month);
               }
               
@@ -13300,7 +13317,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           } else if (referenceMonth) {
             let payment = await storage.getMemberUmpPayment(userId, year, referenceMonth);
-            if (!payment) {
+            if (payment) {
+              await storage.updateMemberUmpPayment(payment.id, {
+                amount,
+                paidAt: now,
+                entryId: entry.id,
+              });
+            } else {
               await storage.createMemberUmpPayment({
                 userId,
                 year,

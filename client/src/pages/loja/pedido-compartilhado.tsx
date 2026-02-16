@@ -512,10 +512,10 @@ export default function PedidoCompartilhado() {
       <div className="max-w-lg mx-auto px-4 py-6 space-y-4">
         <div className="text-center space-y-2 pb-1">
           <img 
-            src={umpLogoWhite}
-            alt="Logo UMP Ema\u00fas" 
-            className="h-10 w-auto mx-auto"
-            data-testid="img-ump-logo"
+            src="/emaustore-logo-dark.png" 
+            alt="Ema\u00fastore" 
+            className="h-8 w-auto mx-auto"
+            data-testid="img-emaustore-logo"
           />
           <p className="text-sm text-gray-400" data-testid="text-order-code">
             Pedido #{order.orderCode}

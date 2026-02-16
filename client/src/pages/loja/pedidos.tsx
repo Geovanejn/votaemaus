@@ -105,10 +105,10 @@ const paymentStatusLabels: Record<string, { label: string; variant: "default" | 
   refunded: { label: "Estornado", variant: "outline" },
 };
 
-const orderStatusLabels: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
+const orderStatusLabels: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline"; className?: string }> = {
   awaiting_payment: { label: "Aguardando Pagamento", variant: "secondary" },
   installment_payment: { label: "Pagamento Parcelado", variant: "outline" },
-  paid: { label: "Pago", variant: "default" },
+  paid: { label: "Pago", variant: "default", className: "bg-green-600 hover:bg-green-700 text-white" },
   producing: { label: "Em Produção", variant: "outline" },
   ready: { label: "Pronto para Retirada", variant: "default" },
   delivered: { label: "Entregue", variant: "default" },
@@ -365,10 +365,10 @@ export default function MeusPedidosPage() {
                         Pedido #{order.id}
                       </CardTitle>
                       <Badge 
-                        variant={paymentStatusLabels[order.paymentStatus]?.variant || "secondary"}
-                        className={paymentStatusLabels[order.paymentStatus]?.className}
+                        variant={orderStatusLabels[order.orderStatus]?.variant || "secondary"}
+                        className={orderStatusLabels[order.orderStatus]?.className}
                       >
-                        {paymentStatusLabels[order.paymentStatus]?.label || order.paymentStatus}
+                        {orderStatusLabels[order.orderStatus]?.label || order.orderStatus}
                       </Badge>
                     </div>
                     <CardDescription>
@@ -385,11 +385,6 @@ export default function MeusPedidosPage() {
                           {formatCurrency(order.totalAmount)}
                         </p>
                       </div>
-                      {order.orderStatus !== "awaiting_payment" && order.paymentStatus !== "cancelled" && (
-                        <Badge variant={orderStatusLabels[order.orderStatus]?.variant || "secondary"}>
-                          {orderStatusLabels[order.orderStatus]?.label || order.orderStatus}
-                        </Badge>
-                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -413,12 +408,9 @@ export default function MeusPedidosPage() {
               <div className="space-y-4">
                 <div className="flex flex-wrap gap-2">
                   <Badge 
-                    variant={paymentStatusLabels[selectedOrder.paymentStatus]?.variant || "secondary"}
-                    className={paymentStatusLabels[selectedOrder.paymentStatus]?.className}
+                    variant={orderStatusLabels[selectedOrder.orderStatus]?.variant || "secondary"}
+                    className={orderStatusLabels[selectedOrder.orderStatus]?.className}
                   >
-                    Pagamento: {paymentStatusLabels[selectedOrder.paymentStatus]?.label}
-                  </Badge>
-                  <Badge variant={orderStatusLabels[selectedOrder.orderStatus]?.variant || "secondary"}>
                     {orderStatusLabels[selectedOrder.orderStatus]?.label}
                   </Badge>
                 </div>

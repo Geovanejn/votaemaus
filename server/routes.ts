@@ -13243,6 +13243,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         paidAt: now,
       });
       
+      let notifUmpMonths: number[] = [];
       if (type === "income" && userId) {
         if (category === "percapta" || category === "taxa_percapta") {
           let payment = await storage.getMemberPercaptaPayment(userId, year);
@@ -13309,6 +13310,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 referenceMonthsArr.push(month);
               }
               
+              notifUmpMonths = referenceMonthsArr;
               if (referenceMonthsArr.length > 0) {
                 await storage.updateTreasuryEntry(entry.id, {
                   referenceMonths: JSON.stringify(referenceMonthsArr),
@@ -13333,10 +13335,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 entryId: entry.id,
               });
             }
+            notifUmpMonths = [referenceMonth];
           }
         }
       }
       
+      if (type === "income" && userId && (category === "percapta" || category === "taxa_percapta" || category === "ump" || category === "taxa_ump")) {
+        const monthNames = ['', 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+        let desc = '';
+        if (category === "percapta" || category === "taxa_percapta") {
+          desc = `Percapta ${year}`;
+        } else if (notifUmpMonths.length > 0) {
+          const sorted = notifUmpMonths.sort((a, b) => a - b);
+          desc = `UMP ${sorted.map(m => monthNames[m]).join(', ')}/${year}`;
+        } else {
+          desc = `UMP ${year}`;
+        }
+        sendPushToUser(userId, {
+          title: '💰 Pagamento registrado',
+          body: `Seu pagamento de ${desc} foi registrado com sucesso pela tesouraria.`,
+          url: '/membro/financeiro',
+        }).catch(e => console.error('[Treasury] Error notifying user:', e));
+      }
+
       res.status(201).json(entry);
     } catch (error) {
       console.error("Create treasury entry error:", error);
@@ -13350,12 +13371,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let fixedPercapta = 0;
       let fixedUmp = 0;
       const errors: string[] = [];
+      const monthNames = ['', 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+      const notifiedUsers: Map<number, { percapta: boolean; umpMonths: number[]; year: number }> = new Map();
 
       for (const entry of entries) {
         if (!entry.userId) continue;
         
         try {
           const year = entry.referenceYear;
+          const userNotif = notifiedUsers.get(entry.userId) || { percapta: false, umpMonths: [], year };
 
           if (entry.category === "percapta" || entry.category === "taxa_percapta") {
             const existing = await storage.getMemberPercaptaPayment(entry.userId, year);
@@ -13368,6 +13392,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 entryId: entry.id,
               });
               fixedPercapta++;
+              userNotif.percapta = true;
+              notifiedUsers.set(entry.userId, userNotif);
             }
           } else if (entry.category === "ump" || entry.category === "taxa_ump") {
             const settings = await storage.getTreasurySettings(year);
@@ -13393,12 +13419,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
                       });
                       monthsAdded++;
                       fixedUmp++;
+                      userNotif.umpMonths.push(m);
                     } catch (e: any) {
                       if (!e.message?.includes('unique')) {
                         errors.push(`UMP entry ${entry.id} month ${m}: ${e.message}`);
                       }
                     }
                   }
+                }
+                if (userNotif.umpMonths.length > 0) {
+                  notifiedUsers.set(entry.userId, userNotif);
                 }
               }
             } else if (entry.referenceMonth) {
@@ -13414,6 +13444,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
                     entryId: entry.id,
                   });
                   fixedUmp++;
+                  userNotif.umpMonths.push(entry.referenceMonth);
+                  notifiedUsers.set(entry.userId, userNotif);
                 } catch (e: any) {
                   if (!e.message?.includes('unique')) {
                     errors.push(`UMP entry ${entry.id}: ${e.message}`);
@@ -13427,10 +13459,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      let notificationsSent = 0;
+      for (const [userId, info] of notifiedUsers) {
+        try {
+          const parts: string[] = [];
+          if (info.percapta) {
+            parts.push(`Percapta ${info.year}`);
+          }
+          if (info.umpMonths.length > 0) {
+            const sorted = info.umpMonths.sort((a, b) => a - b);
+            const monthList = sorted.map(m => monthNames[m]).join(', ');
+            parts.push(`UMP ${monthList}/${info.year}`);
+          }
+          const description = parts.join(' e ');
+          await sendPushToUser(userId, {
+            title: '💰 Pagamento registrado',
+            body: `Seu pagamento de ${description} foi registrado com sucesso pela tesouraria.`,
+            url: '/membro/financeiro',
+          });
+          notificationsSent++;
+        } catch (e: any) {
+          console.error(`[Fix Payments] Error notifying user ${userId}:`, e.message);
+        }
+      }
+
       res.json({ 
         message: `Correção concluída: ${fixedPercapta} percapta, ${fixedUmp} UMP registros corrigidos`,
+        fixed: fixedPercapta + fixedUmp,
         fixedPercapta,
         fixedUmp,
+        notificationsSent,
         errors: errors.length > 0 ? errors : undefined,
       });
     } catch (error) {

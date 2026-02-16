@@ -254,13 +254,13 @@ export default function TesourariaMovimentacoes() {
   const fixMemberPaymentsMutation = useMutation({
     mutationFn: async () => {
       const res = await apiRequest("POST", "/api/treasury/fix-member-payments", {});
-      return res.json() as Promise<{ fixed: number; errors: number; details: string[] }>;
+      return res.json() as Promise<{ fixed: number; fixedPercapta: number; fixedUmp: number; notificationsSent: number; errors?: string[] }>;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: [`/api/treasury/entries?year=${currentYear}`] });
       toast({ 
         title: "Correcao concluida",
-        description: `${data.fixed} pagamento(s) vinculado(s)${data.errors > 0 ? `, ${data.errors} erro(s)` : ""}`,
+        description: `${data.fixed} pagamento(s) vinculado(s), ${data.notificationsSent || 0} notificacao(oes) enviada(s)`,
       });
     },
     onError: () => {

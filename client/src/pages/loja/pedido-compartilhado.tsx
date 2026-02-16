@@ -774,7 +774,7 @@ export default function PedidoCompartilhado() {
           <img 
             src={umpLogoWhite}
             alt="Logo UMP Ema\u00fas" 
-            className="h-10 w-auto mx-auto opacity-60"
+            className="h-[210px] w-auto mx-auto opacity-60"
           />
         </div>
       </div>

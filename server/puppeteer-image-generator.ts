@@ -33,7 +33,7 @@ async function processImageBuffer(buffer: Buffer): Promise<Buffer> {
 }
 
 export async function generateVerseShareImage(): Promise<Buffer> {
-  console.log('[Puppeteer] Generating verse share image with Sharp flattening fix...');
+  console.log('[Puppeteer] Generating verse share image...');
   const browser = await getBrowser();
   const page = await browser.newPage();
   
@@ -44,10 +44,10 @@ export async function generateVerseShareImage(): Promise<Buffer> {
     
     await page.goto(url, { waitUntil: 'networkidle0', timeout: 60000 });
     
-    await new Promise(resolve => setTimeout(resolve, 3000));
+    await new Promise(resolve => setTimeout(resolve, 5000));
     await page.waitForSelector('[data-testid="button-share-verse"]', { timeout: 30000 });
     await page.click('[data-testid="button-share-verse"]');
-    await page.waitForSelector('[data-testid="dialog-share-verse"]', { timeout: 15000 });
+    await page.waitForSelector('[data-testid="dialog-share-verse"]', { timeout: 30000 });
     
     await new Promise(resolve => setTimeout(resolve, 2000));
     
@@ -67,15 +67,12 @@ export async function generateVerseShareImage(): Promise<Buffer> {
             resolve(capturedDataUrl);
           }
         }, 100);
-        setTimeout(() => { clearInterval(checkInterval); reject(new Error('Timeout')); }, 15000);
+        setTimeout(() => { clearInterval(checkInterval); reject(new Error('Timeout')); }, 20000);
         whatsappButton.click();
       });
     });
     
     const rawBuffer = Buffer.from(imageDataUrl.replace(/^data:image\/\w+;base64,/, ''), 'base64');
-    
-    // AQUI A MÁGICA ACONTECE:
-    // Processamos o buffer para garantir que não existam "pontas brancas"
     return await processImageBuffer(rawBuffer);
     
   } finally {
@@ -84,7 +81,7 @@ export async function generateVerseShareImage(): Promise<Buffer> {
 }
 
 export async function generateReflectionShareImage(): Promise<Buffer> {
-  console.log('[Puppeteer] Generating reflection share image with Sharp fix...');
+  console.log('[Puppeteer] Generating reflection share image...');
   const browser = await getBrowser();
   const page = await browser.newPage();
   
@@ -95,10 +92,10 @@ export async function generateReflectionShareImage(): Promise<Buffer> {
     
     await page.goto(url, { waitUntil: 'networkidle0', timeout: 60000 });
     
-    await new Promise(resolve => setTimeout(resolve, 3000));
+    await new Promise(resolve => setTimeout(resolve, 5000));
     await page.waitForSelector('[data-testid="button-share-reflection"]', { timeout: 30000 });
     await page.click('[data-testid="button-share-reflection"]');
-    await page.waitForSelector('[data-testid="dialog-share-reflection"]', { timeout: 15000 });
+    await page.waitForSelector('[data-testid="dialog-share-reflection"]', { timeout: 30000 });
     
     await new Promise(resolve => setTimeout(resolve, 2000));
     
@@ -118,7 +115,7 @@ export async function generateReflectionShareImage(): Promise<Buffer> {
             resolve(capturedDataUrl);
           }
         }, 100);
-        setTimeout(() => { clearInterval(checkInterval); reject(new Error('Timeout')); }, 15000);
+        setTimeout(() => { clearInterval(checkInterval); reject(new Error('Timeout')); }, 20000);
         whatsappButton.click();
       });
     });
@@ -132,7 +129,7 @@ export async function generateReflectionShareImage(): Promise<Buffer> {
 }
 
 export async function generateBirthdayShareImage(memberId: number): Promise<Buffer> {
-  console.log(`[Puppeteer] Generating birthday share image for member ${memberId} with Sharp fix...`);
+  console.log(`[Puppeteer] Generating birthday share image for member ${memberId}...`);
   const browser = await getBrowser();
   const page = await browser.newPage();
   
@@ -143,12 +140,29 @@ export async function generateBirthdayShareImage(memberId: number): Promise<Buff
     
     await page.goto(url, { waitUntil: 'networkidle0', timeout: 60000 });
     
-    await new Promise(resolve => setTimeout(resolve, 3000));
-    await page.waitForSelector(`[data-testid="button-share-birthday-${memberId}"]`, { timeout: 30000 });
-    await page.click(`[data-testid="button-share-birthday-${memberId}"]`);
-    await page.waitForSelector('[data-testid="dialog-share-birthday"]', { timeout: 15000 });
+    await new Promise(resolve => setTimeout(resolve, 5000));
+    await page.waitForSelector('[data-testid="dialog-share-birthday"]', { timeout: 30000 });
     
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    await page.evaluate(() => {
+      return new Promise<void>((resolve) => {
+        const images = document.querySelectorAll('[data-testid="dialog-share-birthday"] img');
+        if (images.length === 0) { resolve(); return; }
+        let loaded = 0;
+        const total = images.length;
+        const checkDone = () => { if (++loaded >= total) resolve(); };
+        images.forEach(img => {
+          const imgEl = img as HTMLImageElement;
+          if (imgEl.complete && imgEl.naturalWidth > 0) { checkDone(); }
+          else {
+            imgEl.addEventListener('load', checkDone, { once: true });
+            imgEl.addEventListener('error', checkDone, { once: true });
+          }
+        });
+        setTimeout(resolve, 10000);
+      });
+    });
+    
+    await new Promise(resolve => setTimeout(resolve, 3000));
     
     const imageDataUrl = await page.evaluate(async () => {
       const whatsappButton = document.querySelector('[data-testid="button-share-whatsapp"]') as HTMLButtonElement;
@@ -166,7 +180,7 @@ export async function generateBirthdayShareImage(memberId: number): Promise<Buff
             resolve(capturedDataUrl);
           }
         }, 100);
-        setTimeout(() => { clearInterval(checkInterval); reject(new Error('Timeout')); }, 15000);
+        setTimeout(() => { clearInterval(checkInterval); reject(new Error('Timeout')); }, 20000);
         whatsappButton.click();
       });
     });

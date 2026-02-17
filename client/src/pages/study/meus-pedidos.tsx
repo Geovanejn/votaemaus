@@ -78,6 +78,7 @@ function formatDate(date: string): string {
 const paymentStatusLabels: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   pending: { label: "Aguardando", variant: "secondary" },
   paid: { label: "Pago", variant: "default" },
+  partial: { label: "Parcial", variant: "outline" },
   cancelled: { label: "Cancelado", variant: "destructive" },
   refunded: { label: "Estornado", variant: "outline" },
 };

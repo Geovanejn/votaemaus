@@ -110,6 +110,7 @@ const statusLabels: Record<string, { label: string; variant: "default" | "second
   pending: { label: "Pendente", variant: "secondary" },
   paid: { label: "Pago", variant: "default" },
   completed: { label: "Pago", variant: "default" },
+  partial: { label: "Parcial", variant: "outline" },
   expired: { label: "Expirado", variant: "destructive" },
   cancelled: { label: "Cancelado", variant: "outline" },
 };
@@ -906,7 +907,7 @@ export default function TesourariaMovimentacoes() {
                                 variant={order.paymentStatus === "paid" ? "default" : order.paymentStatus === "pending" ? "secondary" : "destructive"}
                                 className="text-xs"
                               >
-                                {order.paymentStatus === "paid" ? "Pago" : order.paymentStatus === "pending" ? "Pendente" : "Cancelado"}
+                                {order.paymentStatus === "paid" ? "Pago" : order.paymentStatus === "pending" ? "Pendente" : order.paymentStatus === "partial" ? "Parcial" : "Cancelado"}
                               </Badge>
                             </div>
                           </div>

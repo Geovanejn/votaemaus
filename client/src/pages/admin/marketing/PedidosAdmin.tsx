@@ -1123,7 +1123,8 @@ export default function PedidosAdminPage() {
                     <span className="text-muted-foreground">Pagamento:</span>
                     <Badge variant={detailsOrder.paymentStatus === "paid" ? "default" : "secondary"}>
                       {detailsOrder.paymentStatus === "paid" ? "Pago" : 
-                       detailsOrder.paymentStatus === "pending" ? "Pendente" : detailsOrder.paymentStatus}
+                       detailsOrder.paymentStatus === "pending" ? "Pendente" : 
+                       detailsOrder.paymentStatus === "partial" ? "Parcial" : detailsOrder.paymentStatus}
                     </Badge>
                   </div>
                   {detailsOrder.paidAt && (

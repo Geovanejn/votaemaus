@@ -15468,9 +15468,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
         updates.paidAt = null as any;
       }
       
+      const order = await storage.getShopOrderById(installment.orderId);
+      
+      if (status === 'paid' && !installment.entryId && order) {
+        const treasuryEntry = await storage.createTreasuryEntry({
+          type: "income",
+          category: "loja",
+          description: `Pedido ${order.orderCode} - Parcela ${installment.installmentNumber}`,
+          amount: installment.amount,
+          userId: order.userId,
+          referenceYear: new Date().getFullYear(),
+          paymentMethod: "manual",
+          paymentStatus: "paid",
+          orderId: order.id,
+          paidAt: updates.paidAt || new Date(),
+        });
+        updates.entryId = treasuryEntry.id;
+      }
+      
+      if (status === 'pending' && installment.entryId) {
+        await storage.updateTreasuryEntry(installment.entryId, {
+          paymentStatus: "cancelled",
+        });
+        updates.entryId = null as any;
+      }
+      
       const updated = await storage.updateShopInstallment(id, updates);
       
-      const order = await storage.getShopOrderById(installment.orderId);
       if (order) {
         const allInstallments = await storage.getShopInstallments(order.id);
         const currentStatuses = allInstallments.map(inst => inst.id === id ? status : inst.status);
@@ -15483,18 +15507,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
             orderStatus: 'paid',
             paidAt: new Date(),
           });
+          if (order.entryId) {
+            await storage.updateTreasuryEntry(order.entryId, {
+              paymentStatus: "paid",
+              paidAt: new Date(),
+            });
+          }
         } else if (anyPaid) {
           await storage.updateShopOrder(order.id, { 
             orderStatus: 'installment_payment',
-            paymentStatus: 'pending',
+            paymentStatus: 'partial',
             paidAt: null as any,
           });
+          if (order.entryId) {
+            await storage.updateTreasuryEntry(order.entryId, {
+              paymentStatus: "partial",
+            });
+          }
         } else {
           await storage.updateShopOrder(order.id, { 
             orderStatus: 'awaiting_payment',
             paymentStatus: 'pending',
             paidAt: null as any,
           });
+          if (order.entryId) {
+            await storage.updateTreasuryEntry(order.entryId, {
+              paymentStatus: "pending",
+            });
+          }
         }
       }
       

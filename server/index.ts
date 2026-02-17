@@ -164,6 +164,86 @@ async function backfillTreasuryForPaidOrders() {
   }
 }
 
+async function backfillInstallmentTreasuryEntries() {
+  try {
+    const { db } = await import("./db");
+    const { shopOrders, shopInstallments } = await import("@shared/schema");
+    const { eq, and, gt, isNull } = await import("drizzle-orm");
+
+    const installmentOrders = await db
+      .select()
+      .from(shopOrders)
+      .where(
+        and(
+          gt(shopOrders.installmentCount, 1),
+        )
+      );
+
+    let createdEntries = 0;
+    let updatedOrders = 0;
+
+    for (const order of installmentOrders) {
+      const installments = await storage.getShopInstallmentsByOrderId(order.id);
+      const paidInstallments = installments.filter(i => i.status === "paid");
+
+      for (const inst of paidInstallments) {
+        if (inst.entryId) continue;
+
+        try {
+          const entry = await storage.createTreasuryEntry({
+            type: "income",
+            category: "loja",
+            description: `Pedido ${order.orderCode} - Parcela ${inst.installmentNumber}`,
+            amount: inst.amount,
+            userId: order.userId,
+            referenceYear: inst.paidAt ? new Date(inst.paidAt).getFullYear() : new Date().getFullYear(),
+            paymentMethod: inst.paymentId ? "pix" : "manual",
+            paymentStatus: "paid",
+            orderId: order.id,
+            paidAt: inst.paidAt || new Date(),
+          });
+          await storage.updateShopInstallment(inst.id, { entryId: entry.id });
+          createdEntries++;
+        } catch (err: any) {
+          console.error(`[Backfill] Erro ao criar entrada para parcela ${inst.installmentNumber} do pedido ${order.orderCode}:`, err.message);
+        }
+      }
+
+      if (paidInstallments.length > 0 && order.entryId) {
+        const allPaid = installments.every(i => i.status === "paid");
+        const newStatus = allPaid ? "paid" : "partial";
+        try {
+          const entry = await storage.getTreasuryEntryById(order.entryId);
+          if (entry && entry.paymentStatus !== newStatus) {
+            await storage.updateTreasuryEntry(order.entryId, {
+              paymentStatus: newStatus,
+              ...(allPaid ? { paidAt: order.paidAt || new Date() } : {}),
+            });
+            updatedOrders++;
+          }
+        } catch (err: any) {
+          console.error(`[Backfill] Erro ao atualizar entrada do pedido parcelado ${order.orderCode}:`, err.message);
+        }
+      }
+
+      if (paidInstallments.length > 0 && !installments.every(i => i.status === "paid")) {
+        if (order.orderStatus !== "installment_payment") {
+          await storage.updateShopOrder(order.id, { orderStatus: "installment_payment", paymentStatus: "partial" });
+        }
+      }
+    }
+
+    if (createdEntries === 0 && updatedOrders === 0) {
+      console.log("[Backfill] Nenhuma parcela paga precisou de correção na tesouraria.");
+    } else {
+      if (createdEntries > 0) console.log(`[Backfill] ${createdEntries} entrada(s) criada(s) para parcelas pagas.`);
+      if (updatedOrders > 0) console.log(`[Backfill] ${updatedOrders} pedido(s) parcelado(s) atualizados na tesouraria.`);
+    }
+  } catch (error: any) {
+    console.error("[Backfill] Erro ao executar backfill de parcelas:", error.message);
+  }
+}
+
 async function seedShopCategories() {
   try {
     const existingCategories = await storage.getShopCategories();
@@ -409,6 +489,9 @@ app.use((req, res, next) => {
       
       // Backfill: cria entradas na tesouraria para pedidos pagos sem vínculo (só cria, nunca apaga)
       await backfillTreasuryForPaidOrders();
+      
+      // Backfill: cria entradas na tesouraria para parcelas pagas sem vínculo
+      await backfillInstallmentTreasuryEntries();
       
       // Backfill: adiciona shareToken a pedidos manuais antigos (só adiciona, nunca apaga)
       await backfillShareTokenForManualOrders();

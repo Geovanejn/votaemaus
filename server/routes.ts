@@ -16206,22 +16206,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
                         orderStatus: "paid",
                         paidAt: new Date(),
                       });
+                      if (order.entryId) {
+                        await storage.updateTreasuryEntry(order.entryId, {
+                          paymentStatus: "paid",
+                          paidAt: new Date(),
+                        });
+                      }
                     } else {
                       await storage.updateShopOrder(installment.orderId, {
                         orderStatus: "installment_payment",
+                        paymentStatus: "partial",
                       });
+                      if (order.entryId) {
+                        await storage.updateTreasuryEntry(order.entryId, {
+                          paymentStatus: "partial",
+                        });
+                      }
                     }
                     
                     await storage.createNotification({
                       userId: order.userId,
                       type: 'payment_confirmed',
-                      title: '✅ Parcela Paga',
+                      title: '\u2705 Parcela Paga',
                       body: `Parcela ${installment.installmentNumber} do pedido ${order.orderCode} foi paga!`,
                       data: JSON.stringify({ orderId: order.id, installmentId: installment.id }),
                     });
                     
                     await sendPushToUser(order.userId, {
-                      title: '✅ Parcela Paga',
+                      title: '\u2705 Parcela Paga',
                       body: `Parcela ${installment.installmentNumber} do pedido ${order.orderCode} confirmada!`,
                       url: '/membro/financeiro',
                       tag: `installment-paid-${installment.id}`,
@@ -16342,16 +16354,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
                     orderStatus: "paid",
                     paidAt: new Date(),
                   });
+                  if (order.entryId) {
+                    await storage.updateTreasuryEntry(order.entryId, {
+                      paymentStatus: "paid",
+                      paidAt: new Date(),
+                    });
+                  }
                 } else {
                   await storage.updateShopOrder(installment.orderId, {
                     orderStatus: "installment_payment",
+                    paymentStatus: "partial",
                   });
+                  if (order.entryId) {
+                    await storage.updateTreasuryEntry(order.entryId, {
+                      paymentStatus: "partial",
+                    });
+                  }
                 }
                 
                 await storage.createNotification({
                   userId: order.userId,
                   type: 'payment_confirmed',
-                  title: '✅ Parcela Paga',
+                  title: '\u2705 Parcela Paga',
                   body: `Parcela ${installment.installmentNumber} do pedido ${order.orderCode} foi paga!`,
                   data: JSON.stringify({ orderId: order.id, installmentId: installment.id }),
                 });

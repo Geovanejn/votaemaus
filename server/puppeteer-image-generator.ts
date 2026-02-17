@@ -25,10 +25,10 @@ async function getBrowser(): Promise<Browser> {
   return browserInstance;
 }
 
-// Função para processar o buffer e remover transparência substituindo por preto
 async function processImageBuffer(buffer: Buffer): Promise<Buffer> {
   return await sharp(buffer)
-    .flatten({ background: '#000000' }) // O "Segredo": Transforma transparência em Preto Puro
+    .flatten({ background: '#000000' })
+    .jpeg({ quality: 90 })
     .toBuffer();
 }
 

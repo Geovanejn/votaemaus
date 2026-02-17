@@ -348,8 +348,10 @@ export async function uploadStoryImageToR2(
 ): Promise<string | null> {
   const { uploadToR2, isR2Configured, getPublicUrl } = await import('./r2-storage');
   
-  // CORREÇÃO CRÍTICA: Força a extensão .png para garantir transparência
-  const finalFilename = filename.replace(/\.(jpg|jpeg)$/i, '.png');
+  const isJpeg = imageBuffer[0] === 0xFF && imageBuffer[1] === 0xD8;
+  const ext = isJpeg ? '.jpg' : '.png';
+  const contentType = isJpeg ? 'image/jpeg' : 'image/png';
+  const finalFilename = filename.replace(/\.(jpg|jpeg|png)$/i, ext);
   
   if (!isR2Configured()) {
     console.log('[StoryGenerator] R2 not configured - saving locally for development');
@@ -371,8 +373,7 @@ export async function uploadStoryImageToR2(
     return publicUrl;
   }
   
-  // Upload como PNG
-  const result = await uploadToR2(imageBuffer, 'instagram-stories' as any, 'image/png', finalFilename);
+  const result = await uploadToR2(imageBuffer, 'instagram-stories' as any, contentType, finalFilename);
   
   if (result) {
     const publicUrl = getPublicUrl(result);

@@ -1,0 +1,469 @@
+Spaces
+Hugging Face's logo
+Umpemaus
+/
+umpemaus 
+
+like
+0
+
+
+Logs
+
+build
+container
+
+Logs Endpoint
+
+
+
+===== Application Startup at 2026-02-17 02:18:18 =====
+
+
+> rest-express@1.0.0 start
+> NODE_ENV=production node dist/index.js
+
+✓ Logo configured with public URL: https://umpemaus.com.br/logo-email.png
+[MercadoPago] Webhook URL configured: https://umpemaus.com.br/api/pix/webhook
+[MercadoPago] Client initialized successfully
+[Push] Web Push configured successfully
+🔧 [System] DNS Configurado: IPv4 First + Google DNS (8.8.8.8)
+[R2] Configured - Bucket: umpemaus, Public URL: https://pub-73bb54c6aac24e7a926425a7c58e7c2d.r2.dev
+[WebSocket] Server initialized
+2:19:11 AM [express] serving on port 7860
+Initializing PostgreSQL database connection...
+PostgreSQL connection successful: 2026-02-17T02:19:12.035Z
+[Migration] Schema migrations checked successfully
+Admin marketingumpemaus@gmail.com ja existe e esta configurado.
+Database initialized successfully!
+[Backfill] Nenhum pedido pago precisou de correção na tesouraria.
+[Backfill] Nenhuma parcela paga precisou de correção na tesouraria.
+[Backfill] Todos os pedidos manuais já possuem shareToken.
+[Migration] Starting image migration to R2...
+[Birthday Scheduler] Initialized - will run daily at 07:00 AM (America/Sao_Paulo)
+[DeoGlory Scheduler] Streak check initialized - will run daily at 19:00 (America/Sao_Paulo)
+[DeoGlory Scheduler] Inactivity check initialized - will run daily at 15:30 (America/Sao_Paulo)
+[Daily Verse Scheduler] Initialized - will run daily at 07:00 (America/Sao_Paulo)
+[Daily Verse Scheduler] Banner cleanup initialized - will remove from banner at 23:59 (America/Sao_Paulo)
+[Recovery Verses Scheduler] Initialized - will run daily at 15:30 (America/Sao_Paulo)
+[Instagram Scheduler] Initialized - will sync every 6 hours (America/Sao_Paulo)
+[Instagram Scheduler] Running sync...
+[Instagram] Starting sync...
+[Daily Missions Scheduler] Initialized - will run daily at 00:00 (America/Sao_Paulo)
+[Weekly Goal Scheduler] Initialized - will run every Saturday at 23:59 (America/Sao_Paulo)
+[Event Scheduler] Lesson release initialized - will run daily at 00:00 (America/Sao_Paulo)
+[Event Scheduler] Card distribution initialized - will run daily at 23:59 (America/Sao_Paulo)
+[Event Deadline Scheduler] Initialized - will run every hour at :00 (America/Sao_Paulo) with database persistence
+[Marketing Reminder Scheduler] Initialized - will run every hour at :30 (America/Sao_Paulo) with database persistence
+[Treasury Scheduler] Day 5 reminder initialized - will run on day 5 of each month at 08:00 (America/Sao_Paulo)
+[Treasury Scheduler] 5th business day reminder initialized - will run on weekdays at 08:00 (America/Sao_Paulo)
+[Shop Scheduler] Abandoned cart reminder initialized - will run every hour (America/Sao_Paulo) with auto-cancel after 48h
+[Treasury Scheduler] Loan installment reminder initialized - will run daily at 08:00 (America/Sao_Paulo)
+[Shop Scheduler] Shop installment reminder initialized - will run daily at 08:00 (America/Sao_Paulo)
+[Shop Scheduler] Overdue installment checker initialized - will run daily at 09:00 (America/Sao_Paulo)
+[Event Fee Scheduler] Event fee reminder initialized - will run daily at 08:00 (America/Sao_Paulo)
+[Treasury Scheduler] Year rollover initialized - will run on Jan 1st at 00:05 (America/Sao_Paulo)
+[Treasury Scheduler] Monthly summary initialized - will run on day 1 of each month at 08:00 (America/Sao_Paulo)
+[Instagram Token Scheduler] Token refresh initialized - will run daily at 07:00 (America/Sao_Paulo)
+[Instagram Stories Scheduler] Verse image generation initialized - will run daily at 07:05 (America/Sao_Paulo)
+[Instagram Stories Scheduler] Reflection image generation initialized - will run daily at 07:08 (America/Sao_Paulo)
+[Instagram Stories Scheduler] Verse story initialized - will run daily at 07:10 (America/Sao_Paulo)
+[Instagram Stories Scheduler] Reflection story initialized - will run daily at 07:15 (America/Sao_Paulo)
+[Instagram Stories Scheduler] Birthday image generation initialized - will run daily at 08:01 (America/Sao_Paulo)
+[Instagram Stories Scheduler] Birthday stories initialized - will run daily at 08:05 (America/Sao_Paulo)
+2:19:12 AM [express] Database and schedulers initialized successfully
+⚠️ [Instagram API] Falha de conexão (ENOTFOUND). Tentando Bypass Manual (Tentativa 1/3)...
+🔧 [Bypass] IP resolvido: 31.13.66.4 para graph.facebook.com
+[Migration] Completed in 0.4s
+[Migration] Migrated: 0, Failed: 0, Skipped: 0
+[Instagram] Fetched 12 posts from API
+⚠️ [Instagram API] Falha de conexão (ENOTFOUND). Tentando Bypass Manual (Tentativa 1/3)...
+🔧 [Bypass] IP resolvido: 31.13.66.4 para graph.facebook.com
+⚠️ [Instagram API] Falha de conexão (ENOTFOUND). Tentando Bypass Manual (Tentativa 1/3)...
+🔧 [Bypass] IP resolvido: 31.13.66.4 para graph.facebook.com
+⚠️ [Instagram API] Falha de conexão (ENOTFOUND). Tentando Bypass Manual (Tentativa 1/3)...
+🔧 [Bypass] IP resolvido: 31.13.66.4 para graph.facebook.com
+⚠️ [Instagram API] Falha de conexão (ENOTFOUND). Tentando Bypass Manual (Tentativa 1/3)...
+🔧 [Bypass] IP resolvido: 31.13.66.4 para graph.facebook.com
+⚠️ [Instagram API] Falha de conexão (ENOTFOUND). Tentando Bypass Manual (Tentativa 1/3)...
+🔧 [Bypass] IP resolvido: 31.13.66.4 para graph.facebook.com
+[Instagram] Sync completed: 12 saved, 0 errors
+[Instagram Scheduler] Sync completed: 12 posts synced, 0 errors
+2:19:15 AM [express] GET /api/site/daily-verse 200 in 201ms :: {"id":44,"verse":"tendo por certo ist…
+2:19:15 AM [express] GET /api/site-content/quem-somos 200 in 105ms :: {"email":{"title":"","content"…
+2:19:15 AM [express] GET /api/site/highlights 200 in 307ms :: {"devotional":{"id":5,"title":"Além da…
+2:19:15 AM [express] GET /api/push/vapid-key 200 in 1ms :: {"publicKey":"BJyzrSxzvZ1RVtMvUD8MtIfZakv…
+[Daily Verse Scheduler] Running initial check at startup...
+[Daily Verse Scheduler] Sending daily verse notification...
+[Daily Verse Scheduler] Already sent today (2026-02-16), skipping
+2:19:18 AM [express] GET /api/site/highlights 200 in 54ms :: {"devotional":{"id":5,"title":"Além da …
+2:19:18 AM [express] GET /api/site/daily-verse 200 in 37ms :: {"id":44,"verse":"tendo por certo isto…
+2:19:18 AM [express] GET /api/site-content/quem-somos 200 in 77ms :: {"email":{"title":"","content":…
+2:19:18 AM [express] GET /api/push/vapid-key 200 in 2ms :: {"publicKey":"BJyzrSxzvZ1RVtMvUD8MtIfZakv…
+[Recovery Verses Scheduler] Running initial check at startup...
+[Recovery Verses Scheduler] Generating daily recovery verses...
+[BibleAPI] 30 recovery verses fetched successfully from ABíbliaDigital
+[Recovery Verses Scheduler] Skipping duplicate: Filipenses 4:13 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Isaías 43:1 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Salmos 121:1 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Romanos 8:39 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Salmos 55:22 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: 1 Pedro 5:7 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Isaías 43:2 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: 2 Coríntios 4:16 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Romanos 8:28 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Salmos 121:2 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Tiago 1:3 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Apocalipse 21:4 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Salmos 34:18 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Isaías 41:10 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Salmos 27:1 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Filipenses 4:7 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Hebreus 13:6 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: 2 Coríntios 1:3 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: João 14:27 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: João 16:33 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: 2 Coríntios 1:4 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Jeremias 29:11 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Tiago 1:2 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Salmos 91:2 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Mateus 6:34 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Salmos 91:1 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Mateus 11:28 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Salmos 46:1 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Isaías 40:31 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Salmos 23:4 (ARA)
+[Recovery Verses Scheduler] Added 0 new recovery verses for recovery-2026-02-16
+[Daily Missions Scheduler] Running initial check at startup...
+[Daily Missions Scheduler] Refreshing daily missions with AI...
+[Daily Missions Scheduler] Content already generated for today (2026-02-17)
+[Marketing Reminder Scheduler] Processing marketing event reminders...
+[Marketing Reminder Scheduler] No upcoming marketing events found
+[Daily Verse Scheduler] Removing daily verse from banner (keeping in history)...
+[Event Scheduler] Checking for cards to distribute at 23:59...
+[Event Scheduler] Card distribution check completed
+[Daily Verse Scheduler] Daily verse removed from banner
+[Instagram Scheduler] Running sync...
+[Instagram] Starting sync...
+[Daily Missions Scheduler] Refreshing daily missions with AI...
+[Event Scheduler] Checking for events and lessons to release at 00:00...
+[Event Deadline Scheduler] Checking for events approaching start/deadline...
+[Shop Scheduler] Processing abandoned cart reminders...
+⚠️ [Instagram API] Falha de conexão (ENOTFOUND). Tentando Bypass Manual (Tentativa 1/3)...
+🔧 [Bypass] IP resolvido: 31.13.66.4 para graph.facebook.com
+[Event Deadline Scheduler] Check completed. Sent 0 notification(s)
+[Event Scheduler] Event and lesson release check completed
+[Daily Missions Scheduler] Content already generated for today (2026-02-17)
+[Shop Scheduler] Abandoned cart check completed. Sent 0 notification(s)
+[Instagram] Fetched 12 posts from API
+⚠️ [Instagram API] Falha de conexão (ENOTFOUND). Tentando Bypass Manual (Tentativa 1/3)...
+🔧 [Bypass] IP resolvido: 31.13.66.4 para graph.facebook.com
+⚠️ [Instagram API] Falha de conexão (ENOTFOUND). Tentando Bypass Manual (Tentativa 1/3)...
+🔧 [Bypass] IP resolvido: 31.13.66.4 para graph.facebook.com
+⚠️ [Instagram API] Falha de conexão (ENOTFOUND). Tentando Bypass Manual (Tentativa 1/3)...
+🔧 [Bypass] IP resolvido: 31.13.66.4 para graph.facebook.com
+⚠️ [Instagram API] Falha de conexão (ENOTFOUND). Tentando Bypass Manual (Tentativa 1/3)...
+🔧 [Bypass] IP resolvido: 31.13.66.4 para graph.facebook.com
+⚠️ [Instagram API] Falha de conexão (ENOTFOUND). Tentando Bypass Manual (Tentativa 1/3)...
+🔧 [Bypass] IP resolvido: 31.13.66.4 para graph.facebook.com
+[Instagram] Sync completed: 12 saved, 0 errors
+[Instagram Scheduler] Sync completed: 12 posts synced, 0 errors
+[Marketing Reminder Scheduler] Processing marketing event reminders...
+[Marketing Reminder Scheduler] No upcoming marketing events found
+[Event Deadline Scheduler] Checking for events approaching start/deadline...
+[Shop Scheduler] Processing abandoned cart reminders...
+[Event Deadline Scheduler] Check completed. Sent 0 notification(s)
+[Shop Scheduler] Abandoned cart check completed. Sent 0 notification(s)
+[Marketing Reminder Scheduler] Processing marketing event reminders...
+[Marketing Reminder Scheduler] No upcoming marketing events found
+[Shop Scheduler] Processing abandoned cart reminders...
+[Event Deadline Scheduler] Checking for events approaching start/deadline...
+[Event Deadline Scheduler] Check completed. Sent 0 notification(s)
+[Shop Scheduler] Abandoned cart check completed. Sent 0 notification(s)
+[Marketing Reminder Scheduler] Processing marketing event reminders...
+[Marketing Reminder Scheduler] No upcoming marketing events found
+[Shop Scheduler] Processing abandoned cart reminders...
+[Event Deadline Scheduler] Checking for events approaching start/deadline...
+[Event Deadline Scheduler] Check completed. Sent 0 notification(s)
+[Shop Scheduler] Abandoned cart check completed. Sent 0 notification(s)
+[Marketing Reminder Scheduler] Processing marketing event reminders...
+[Marketing Reminder Scheduler] No upcoming marketing events found
+[Shop Scheduler] Processing abandoned cart reminders...
+[Event Deadline Scheduler] Checking for events approaching start/deadline...
+[Shop Scheduler] Abandoned cart check completed. Sent 0 notification(s)
+[Event Deadline Scheduler] Check completed. Sent 0 notification(s)
+[Marketing Reminder Scheduler] Processing marketing event reminders...
+[Marketing Reminder Scheduler] No upcoming marketing events found
+[Event Deadline Scheduler] Checking for events approaching start/deadline...
+[Shop Scheduler] Processing abandoned cart reminders...
+[Event Deadline Scheduler] Check completed. Sent 0 notification(s)
+[Shop Scheduler] Abandoned cart check completed. Sent 0 notification(s)
+[Marketing Reminder Scheduler] Processing marketing event reminders...
+[Marketing Reminder Scheduler] No upcoming marketing events found
+[Instagram Scheduler] Running sync...
+[Instagram] Starting sync...
+[Shop Scheduler] Processing abandoned cart reminders...
+[Event Deadline Scheduler] Checking for events approaching start/deadline...
+⚠️ [Instagram API] Falha de conexão (ENOTFOUND). Tentando Bypass Manual (Tentativa 1/3)...
+🔧 [Bypass] IP resolvido: 31.13.66.4 para graph.facebook.com
+[Event Deadline Scheduler] Check completed. Sent 0 notification(s)
+[Instagram] Fetched 12 posts from API
+⚠️ [Instagram API] Falha de conexão (ENOTFOUND). Tentando Bypass Manual (Tentativa 1/3)...
+🔧 [Bypass] IP resolvido: 31.13.66.4 para graph.facebook.com
+⚠️ [Instagram API] Falha de conexão (ENOTFOUND). Tentando Bypass Manual (Tentativa 1/3)...
+🔧 [Bypass] IP resolvido: 31.13.66.4 para graph.facebook.com
+[Push] Successfully sent notification to member user 1
+[Push] Sent "⏳ Pedido Aguardando" to user 1 (1/1 success)
+[Shop Scheduler] Abandoned cart check completed. Sent 1 notification(s)
+⚠️ [Instagram API] Falha de conexão (ENOTFOUND). Tentando Bypass Manual (Tentativa 1/3)...
+🔧 [Bypass] IP resolvido: 31.13.66.4 para graph.facebook.com
+⚠️ [Instagram API] Falha de conexão (ENOTFOUND). Tentando Bypass Manual (Tentativa 1/3)...
+🔧 [Bypass] IP resolvido: 31.13.66.4 para graph.facebook.com
+⚠️ [Instagram API] Falha de conexão (ENOTFOUND). Tentando Bypass Manual (Tentativa 1/3)...
+🔧 [Bypass] IP resolvido: 31.13.66.4 para graph.facebook.com
+[Instagram] Sync completed: 12 saved, 0 errors
+[Instagram Scheduler] Sync completed: 12 posts synced, 0 errors
+[Marketing Reminder Scheduler] Processing marketing event reminders...
+[Marketing Reminder Scheduler] No upcoming marketing events found
+[Instagram Token Scheduler] Attempting to refresh access token...
+[Event Deadline Scheduler] Checking for events approaching start/deadline...
+[Daily Verse Scheduler] Sending daily verse notification...
+[Shop Scheduler] Processing abandoned cart reminders...
+[Birthday Scheduler] Running daily birthday check...
+⚠️ [Instagram API] Falha de conexão (ENOTFOUND). Tentando Bypass Manual (Tentativa 1/3)...
+🔧 [Bypass] IP resolvido: 31.13.66.4 para graph.facebook.com
+[Instagram] Token refreshed, expires in 2888818 seconds
+[Instagram Token Scheduler] Token refreshed successfully
+[BibleAPI] Daily verse fetched successfully from ABíbliaDigital
+[Daily Verse Scheduler] Using AI-generated verse
+[Daily Verse] Trying key 1 with model gemini-3-flash-preview...
+[Event Deadline Scheduler] Check completed. Sent 0 notification(s)
+[Shop Scheduler] Abandoned cart check completed. Sent 0 notification(s)
+[Birthday Scheduler] Found 1 birthday(s) today
+[Push] User 27 has no push subscriptions registered
+[Birthday Scheduler] ✓ Sent birthday push to Paulo Fernando Souza Nunes 
+Downloading member photo from: r2://members/1770628520549-086y3o.jpeg
+✓ Birthday email sent to Paulo Nunes (pnunes2504@gmail.com)
+[Birthday Scheduler] ✓ Sent birthday email to Paulo Fernando Souza Nunes  (pnunes2504@gmail.com)
+[Push] Sending "🎉 Aniversário de Membro!" to 29 active members
+[Push] Successfully sent notification to member user 6
+[Push] Successfully sent notification to member user 6
+[Push] Sent "🎉 Aniversário de Membro!" to user 6 (2/2 success)
+[Push] User 17 has no push subscriptions registered
+[Push] User 7 has no push subscriptions registered
+[Push] Successfully sent notification to member user 16
+[Push] Sent "🎉 Aniversário de Membro!" to user 16 (1/1 success)
+[Push] User 4 has no push subscriptions registered
+[Push] Successfully sent notification to member user 25
+[Push] Sent "🎉 Aniversário de Membro!" to user 25 (1/1 success)
+[Push] Successfully sent notification to member user 23
+[Push] Sent "🎉 Aniversário de Membro!" to user 23 (1/1 success)
+[Push] Successfully sent notification to member user 9
+[Push] Sent "🎉 Aniversário de Membro!" to user 9 (1/1 success)
+[Push] Successfully sent notification to member user 12
+[Push] Sent "🎉 Aniversário de Membro!" to user 12 (1/1 success)
+[Push] User 5 has no push subscriptions registered
+[Push] Successfully sent notification to member user 11
+[Push] Successfully sent notification to member user 11
+[Push] Sent "🎉 Aniversário de Membro!" to user 11 (2/2 success)
+[Push] Successfully sent notification to member user 13
+[Push] Sent "🎉 Aniversário de Membro!" to user 13 (1/1 success)
+[Push] User 2 has no push subscriptions registered
+[Push] Successfully sent notification to member user 1
+[Push] Sent "🎉 Aniversário de Membro!" to user 1 (1/1 success)
+[Push] User 3 has no push subscriptions registered
+[Push] User 35 has no push subscriptions registered
+[Push] User 34 has no push subscriptions registered
+[Push] User 20 has no push subscriptions registered
+[Push] User 30 has no push subscriptions registered
+[Push] User 18 has no push subscriptions registered
+[Push] User 31 has no push subscriptions registered
+[Push] User 26 has no push subscriptions registered
+[Push] User 33 has no push subscriptions registered
+[Push] User 14 has no push subscriptions registered
+[Push] User 27 has no push subscriptions registered
+[Push] User 29 has no push subscriptions registered
+[Push] User 24 has no push subscriptions registered
+[Push] User 32 has no push subscriptions registered
+[Push] User 15 has no push subscriptions registered
+[Birthday Scheduler] Birthday announcement push: 9 success, 20 failed
+[Birthday Scheduler] Completed. Processed 1 birthday(s)
+[Daily Verse] Reflection and keywords generated successfully with key 1, model gemini-3-flash-preview
+[Daily Verse Scheduler] Created post 45 with stock image 38
+[Push] Sending "✨ Versículo do Dia" to 41 members (including inactive)
+[Push] Successfully sent notification to member user 25
+[Push] Sent "✨ Versículo do Dia" to user 25 (1/1 success)
+[Push] Successfully sent notification to member user 1
+[Push] Sent "✨ Versículo do Dia" to user 1 (1/1 success)
+[Push] User 42 has no push subscriptions registered
+[Push] Successfully sent notification to member user 12
+[Push] Sent "✨ Versículo do Dia" to user 12 (1/1 success)
+[Push] User 39 has no push subscriptions registered
+[Push] User 30 has no push subscriptions registered
+[Push] User 18 has no push subscriptions registered
+[Push] User 31 has no push subscriptions registered
+[Push] User 26 has no push subscriptions registered
+[Push] User 5 has no push subscriptions registered
+[Push] Successfully sent notification to member user 13
+[Push] Sent "✨ Versículo do Dia" to user 13 (1/1 success)
+[Push] Successfully sent notification to member user 11
+[Push] Successfully sent notification to member user 11
+[Push] Sent "✨ Versículo do Dia" to user 11 (2/2 success)
+[Push] Successfully sent notification to member user 22
+[Push] Sent "✨ Versículo do Dia" to user 22 (1/1 success)
+[Push] User 15 has no push subscriptions registered
+[Push] User 20 has no push subscriptions registered
+[Push] User 2 has no push subscriptions registered
+[Push] Successfully sent notification to member user 9
+[Push] Sent "✨ Versículo do Dia" to user 9 (1/1 success)
+[Push] Successfully sent notification to member user 41
+[Push] Sent "✨ Versículo do Dia" to user 41 (1/1 success)
+[Push] Successfully sent notification to member user 6
+[Push] Successfully sent notification to member user 6
+[Push] Sent "✨ Versículo do Dia" to user 6 (2/2 success)
+[Push] Successfully sent notification to member user 28
+[Push] Sent "✨ Versículo do Dia" to user 28 (1/1 success)
+[Push] User 17 has no push subscriptions registered
+[Push] User 35 has no push subscriptions registered
+[Push] User 7 has no push subscriptions registered
+[Push] User 3 has no push subscriptions registered
+[Push] User 34 has no push subscriptions registered
+[Push] Successfully sent notification to member user 23
+[Push] Sent "✨ Versículo do Dia" to user 23 (1/1 success)
+[Push] Successfully sent notification to member user 19
+[Push] Sent "✨ Versículo do Dia" to user 19 (1/1 success)
+[Push] User 32 has no push subscriptions registered
+[Push] Successfully sent notification to member user 16
+[Push] Sent "✨ Versículo do Dia" to user 16 (1/1 success)
+[Push] User 40 has no push subscriptions registered
+[Push] User 24 has no push subscriptions registered
+[Push] User 14 has no push subscriptions registered
+[Push] User 27 has no push subscriptions registered
+[Push] User 4 has no push subscriptions registered
+[Push] User 8 has no push subscriptions registered
+[Push] User 37 has no push subscriptions registered
+[Push] Successfully sent notification to member user 38
+[Push] Sent "✨ Versículo do Dia" to user 38 (1/1 success)
+[Push] Successfully sent notification to member user 21
+[Push] Successfully sent notification to member user 21
+[Push] Sent "✨ Versículo do Dia" to user 21 (2/2 success)
+[Push] User 33 has no push subscriptions registered
+[Push] Successfully sent notification to member user 36
+[Push] Sent "✨ Versículo do Dia" to user 36 (1/1 success)
+[Push] User 29 has no push subscriptions registered
+[Push] WebPush delivery error for anonymous user 38: Received unexpected response code
+[Push] WebPush delivery error for anonymous user 37: Received unexpected response code
+[Notifications] Daily verse with link: 16 members, 0 anonymous visitors
+[Daily Verse Scheduler] Sent: Filipenses 2:3 (ARA)
+[Instagram Stories] Starting verse image generation...
+[Instagram Stories] Generating verse image via Puppeteer...
+[Puppeteer] Generating verse share image with Sharp flattening fix...
+[Puppeteer] Launching browser...
+10:05:02 AM [express] GET /api/site-content/quem-somos 200 in 16ms :: {"email":{"title":"","content":…
+10:05:02 AM [express] GET /api/site/daily-verses 200 in 81ms :: [{"id":45,"verse":"nada façais por co…
+10:05:02 AM [express] GET /api/site/daily-verse 200 in 107ms :: {"id":45,"verse":"nada façais por con…
+10:05:02 AM [express] GET /api/push/vapid-key 200 in 2ms :: {"publicKey":"BJyzrSxzvZ1RVtMvUD8MtIfZakv…
+[Instagram Stories] Error generating verse image: TimeoutError: Waiting for selector `[data-testid="dialog-share-verse"]` failed
+    at CSSQueryHandler.waitFor (file:///app/node_modules/puppeteer-core/lib/esm/puppeteer/common/QueryHandler.js:211:46)
+    at async CdpFrame.waitForSelector (file:///app/node_modules/puppeteer-core/lib/esm/puppeteer/api/Frame.js:541:21)
+    ... 3 lines matching cause stack trace ...
+    at async Timeout._onTimeout (/app/node_modules/node-cron/dist/esm/scheduler/runner.js:70:44) {
+  cause: TimeoutError: Waiting failed: 15000ms exceeded
+      at new WaitTask (file:///app/node_modules/puppeteer-core/lib/esm/puppeteer/common/WaitTask.js:46:34)
+      at IsolatedWorld.waitForFunction (file:///app/node_modules/puppeteer-core/lib/esm/puppeteer/api/Realm.js:22:26)
+      at CSSQueryHandler.waitFor (file:///app/node_modules/puppeteer-core/lib/esm/puppeteer/common/QueryHandler.js:176:95)
+      at async CdpFrame.waitForSelector (file:///app/node_modules/puppeteer-core/lib/esm/puppeteer/api/Frame.js:541:21)
+      at async CdpPage.waitForSelector (file:///app/node_modules/puppeteer-core/lib/esm/puppeteer/api/Page.js:1381:20)
+      at async generateVerseShareImage (file:///app/dist/index.js:14862:5)
+      at async generateAndSaveVerseImage (file:///app/dist/index.js:17433:30)
+      at async Timeout._onTimeout (/app/node_modules/node-cron/dist/esm/scheduler/runner.js:70:44)
+}
+[Instagram Stories] Starting reflection image generation...
+[Instagram Stories] Generating reflection image via Puppeteer...
+[Puppeteer] Generating reflection share image with Sharp fix...
+10:08:00 AM [express] GET /api/site-content/quem-somos 304 in 7ms :: {"email":{"title":"","content":"…
+10:08:00 AM [express] GET /api/site/daily-verse 304 in 37ms :: {"id":45,"verse":"nada façais por cont…
+10:08:00 AM [express] GET /api/site/daily-verses 304 in 37ms :: [{"id":45,"verse":"nada façais por co…
+10:08:00 AM [express] GET /api/push/vapid-key 304 in 0ms :: {"publicKey":"BJyzrSxzvZ1RVtMvUD8MtIfZakv…
+10:08:04 AM [express] GET /api/proxy-image 200 in 112ms
+10:08:08 AM [express] POST /api/study/daily-verse/share 401 in 2ms :: {"message":"Token não fornecido…
+[R2] Uploaded instagram-stories/1771322888616-9jasg0.png (3855.8KB)
+[StoryGenerator] Story image uploaded to R2: https://pub-73bb54c6aac24e7a926425a7c58e7c2d.r2.dev/instagram-stories/1771322888616-9jasg0.png
+[Instagram Stories] Reflection image generated and saved.
+[Instagram Stories] Attempting to publish verse story...
+[Instagram Stories] No saved verse image, generating on-demand...
+[Puppeteer] Generating verse share image with Sharp flattening fix...
+10:10:00 AM [express] GET /api/site-content/quem-somos 304 in 11ms :: {"email":{"title":"","content":…
+10:10:00 AM [express] GET /api/site/daily-verse 200 in 55ms :: {"id":45,"verse":"nada façais por cont…
+10:10:00 AM [express] GET /api/site/daily-verses 200 in 58ms :: [{"id":45,"verse":"nada façais por co…
+10:10:00 AM [express] GET /api/push/vapid-key 304 in 1ms :: {"publicKey":"BJyzrSxzvZ1RVtMvUD8MtIfZakv…
+10:10:09 AM [express] POST /api/study/daily-verse/share 401 in 1ms :: {"message":"Token não fornecido…
+[R2] Uploaded instagram-stories/1771323009440-2wrqi5.png (3655.2KB)
+[StoryGenerator] Story image uploaded to R2: https://pub-73bb54c6aac24e7a926425a7c58e7c2d.r2.dev/instagram-stories/1771323009440-2wrqi5.png
+[Instagram Stories] Starting story publish...
+⚠️ [Instagram API] Falha de conexão (ENOTFOUND). Tentando Bypass Manual (Tentativa 1/3)...
+🔧 [Bypass] IP resolvido: 31.13.66.4 para graph.facebook.com
+[Instagram Stories] Container created: 18351945691228380
+⚠️ [Instagram API] Falha de conexão (ENOTFOUND). Tentando Bypass Manual (Tentativa 1/3)...
+🔧 [Bypass] IP resolvido: 31.13.66.4 para graph.facebook.com
+⚠️ [Instagram API] Falha de conexão (ENOTFOUND). Tentando Bypass Manual (Tentativa 1/3)...
+🔧 [Bypass] IP resolvido: 31.13.66.4 para graph.facebook.com
+[Instagram Stories] Story published! Media ID: 18085652213517039
+[Instagram Stories] Verse story published! Media ID: 18085652213517039
+[Instagram Stories] Attempting to publish reflection story...
+[Instagram Stories] Starting story publish...
+⚠️ [Instagram API] Falha de conexão (ENOTFOUND). Tentando Bypass Manual (Tentativa 1/3)...
+🔧 [Bypass] IP resolvido: 31.13.66.4 para graph.facebook.com
+[Instagram Stories] Container created: 18351945835228380
+⚠️ [Instagram API] Falha de conexão (ENOTFOUND). Tentando Bypass Manual (Tentativa 1/3)...
+🔧 [Bypass] IP resolvido: 31.13.66.4 para graph.facebook.com
+⚠️ [Instagram API] Falha de conexão (ENOTFOUND). Tentando Bypass Manual (Tentativa 1/3)...
+🔧 [Bypass] IP resolvido: 31.13.66.4 para graph.facebook.com
+[Instagram Stories] Story published! Media ID: 17979528980984689
+[Instagram Stories] Reflection story published! Media ID: 17979528980984689
+[Marketing Reminder Scheduler] Processing marketing event reminders...
+[Marketing Reminder Scheduler] No upcoming marketing events found
+[Event Deadline Scheduler] Checking for events approaching start/deadline...
+[Treasury Scheduler] Processing loan installment reminders...
+[Shop Scheduler] Processing shop installment reminders...
+[Event Fee Scheduler] Processing event fee reminders...
+[Shop Scheduler] Processing abandoned cart reminders...
+[Event Fee Scheduler] Event fee reminders completed
+[Push] Successfully sent notification to member user 28
+[Push] Sent "⏳ Pedido Aguardando" to user 28 (1/1 success)
+[Shop Scheduler] Abandoned cart check completed. Sent 1 notification(s)
+[Shop Scheduler] Shop installment check completed. Sent 0 notification(s)
+[Treasury Scheduler] Loan installment check completed. Sent 0 notification(s)
+[Event Deadline Scheduler] Check completed. Sent 0 notification(s)
+[Instagram Stories] Checking for birthdays to generate images...
+[Instagram Stories] Found 1 birthday(s) today.
+[Instagram Stories] Generating birthday image for Paulo Fernando Souza Nunes ...
+[Puppeteer] Generating birthday share image for member 27 with Sharp fix...
+11:01:00 AM [express] GET /api/site/birthday-member/27 200 in 7ms :: {"id":27,"fullName":"Paulo Ferna…
+11:01:00 AM [express] GET /api/push/vapid-key 304 in 1ms :: {"publicKey":"BJyzrSxzvZ1RVtMvUD8MtIfZakv…
+[R2] Uploaded instagram-stories/1771326068609-rpkm9f.png (8212.3KB)
+[StoryGenerator] Story image uploaded to R2: https://pub-73bb54c6aac24e7a926425a7c58e7c2d.r2.dev/instagram-stories/1771326068609-rpkm9f.png
+[Instagram Stories] Birthday image saved for Paulo Fernando Souza Nunes 
+11:04:36 AM [express] GET /api/site-content/quem-somos 304 in 65ms :: {"email":{"title":"","content":…
+11:04:36 AM [express] GET /api/site/highlights 200 in 101ms :: {"devotional":{"id":5,"title":"Além da…
+11:04:36 AM [express] GET /api/site/daily-verse 200 in 97ms :: {"id":45,"verse":"nada façais por cont…
+11:04:36 AM [express] GET /api/push/vapid-key 304 in 1ms :: {"publicKey":"BJyzrSxzvZ1RVtMvUD8MtIfZakv…
+[Instagram Stories] Starting birthday stories publication...
+[Instagram Stories] Publishing birthday story for Paulo...
+[Instagram Stories] Starting story publish...
+⚠️ [Instagram API] Falha de conexão (ENOTFOUND). Tentando Bypass Manual (Tentativa 1/3)...
+🔧 [Bypass] IP resolvido: 31.13.66.4 para graph.facebook.com
+[Instagram Stories] Container creation failed: {
+  error: {
+    message: 'Only photo or video can be accepted as media type.',
+    type: 'OAuthException',
+    code: 9004,
+    error_subcode: 2207052,
+    is_transient: false,
+    error_user_title: 'Falha ao baixar mídia. O URI da mídia não atende aos nossos requisitos.',
+    error_user_msg: 'Não foi possível obter a mídia deste URI: https://pub-73bb54c6aac24e7a926425a7c58e7c2d.r2.dev/instagram-stories/1771326068609-rpkm9f.png.Verifique a seção de limitações no nosso documento de desenvolvimento para mais informações: https://developers.facebook.com/docs/instagram-platform/instagram-graph-api/reference/ig-user/media#creating',
+    fbtrace_id: 'AMPWIgmQ9NKBZnEDVBDxkSl'
+  }
+}
+[Instagram Stories] Failed to publish birthday story for Paulo: Only photo or video can be accepted as media type.
+ 

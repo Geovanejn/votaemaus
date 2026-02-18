@@ -227,8 +227,16 @@ async function backfillInstallmentTreasuryEntries() {
       }
 
       if (paidInstallments.length > 0 && !installments.every(i => i.status === "paid")) {
-        if (order.orderStatus !== "installment_payment") {
+        if (order.orderStatus !== "installment_payment" || order.paymentStatus !== "partial") {
           await storage.updateShopOrder(order.id, { orderStatus: "installment_payment", paymentStatus: "partial" });
+          updatedOrders++;
+          console.log(`[Backfill] Pedido ${order.orderCode}: status atualizado para installment_payment/partial (${paidInstallments.length}/${installments.length} parcelas pagas)`);
+        }
+      } else if (paidInstallments.length > 0 && installments.every(i => i.status === "paid")) {
+        if (order.paymentStatus !== "paid" || order.orderStatus !== "paid") {
+          await storage.updateShopOrder(order.id, { orderStatus: "paid", paymentStatus: "paid", paidAt: order.paidAt || new Date() });
+          updatedOrders++;
+          console.log(`[Backfill] Pedido ${order.orderCode}: todas parcelas pagas, status atualizado para paid`);
         }
       }
     }

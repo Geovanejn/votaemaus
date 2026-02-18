@@ -10782,19 +10782,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Update order status and installment count
+      // Update order installment count but keep status as awaiting_payment
+      // Status only changes to installment_payment when the first installment is paid
       const updateData: any = {
         installmentCount,
-        orderStatus: 'installment_payment',
-        paymentStatus: 'partial',
       };
 
       const updatedOrder = await storage.updateShopOrder(id, updateData);
 
-      // Update main treasury entry if exists
+      // Update main treasury entry description if exists
       if (order.entryId) {
         await storage.updateTreasuryEntry(order.entryId, {
-          paymentStatus: 'partial',
           description: `Pedido ${order.orderCode} (${installmentCount}x)`,
         });
       }

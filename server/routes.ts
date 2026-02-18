@@ -10701,8 +10701,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const { installmentCount } = req.body;
-      if (!installmentCount || installmentCount < 2 || installmentCount > 12) {
-        return res.status(400).json({ message: "Número de parcelas deve ser entre 2 e 12" });
+      if (!installmentCount || installmentCount < 2) {
+        return res.status(400).json({ message: "Número de parcelas deve ser pelo menos 2" });
       }
 
       const order = await storage.getShopOrderById(id);
@@ -10721,6 +10721,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const paidStatuses = ["producing", "ready", "delivered"];
       if (paidStatuses.includes(order.orderStatus)) {
         return res.status(400).json({ message: "Pedido já finalizado não pode ser parcelado" });
+      }
+
+      // Validate installment count against registered rules
+      const orderItems = await storage.getShopOrderItems(id);
+      let maxAllowed = 1;
+      let hasItemLevel = false;
+      for (const oi of orderItems) {
+        const item = await storage.getShopItemById(oi.itemId);
+        if (item?.allowInstallments && item.maxInstallments && item.maxInstallments > maxAllowed) {
+          maxAllowed = item.maxInstallments;
+          hasItemLevel = true;
+        }
+      }
+      if (!hasItemLevel) {
+        const globalRules = await storage.getShopInstallmentRules();
+        const activeRules = globalRules
+          .filter(r => r.isActive && order.totalAmount >= r.minTotalAmount)
+          .sort((a, b) => b.minTotalAmount - a.minTotalAmount);
+        if (activeRules.length > 0) {
+          maxAllowed = activeRules[0].maxInstallments;
+        }
+      }
+      if (maxAllowed <= 1) {
+        return res.status(400).json({ message: "Nenhuma regra de parcelamento se aplica a este pedido" });
+      }
+      if (installmentCount > maxAllowed) {
+        return res.status(400).json({ message: `Máximo de ${maxAllowed} parcelas permitido para este pedido` });
       }
 
       // Check if already has paid installments

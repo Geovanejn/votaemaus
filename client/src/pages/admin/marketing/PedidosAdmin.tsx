@@ -501,12 +501,12 @@ export default function PedidosAdminPage() {
 
   const { data: products } = useQuery<ShopProduct[]>({
     queryKey: ["/api/admin/shop/items"],
-    enabled: isAuthenticated && (user?.isAdmin || isMarketing) && (manualOrderDialogOpen),
+    enabled: isAuthenticated && (user?.isAdmin || isMarketing) && (manualOrderDialogOpen || !!convertInstallmentOrder),
   });
 
   const { data: globalInstallmentRules } = useQuery<Array<{ id: number; minTotalAmount: number; maxInstallments: number; isActive: boolean }>>({
     queryKey: ["/api/shop/installment-rules"],
-    enabled: isAuthenticated && (user?.isAdmin || isMarketing) && manualOrderDialogOpen,
+    enabled: isAuthenticated && (user?.isAdmin || isMarketing) && (manualOrderDialogOpen || !!convertInstallmentOrder),
   });
 
   const manualItemIds = manualOrderItems.filter(i => i.itemId > 0).map(i => i.itemId);
@@ -1389,38 +1389,83 @@ export default function PedidosAdminPage() {
               )}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>Número de Parcelas</Label>
-              <Select value={convertInstallmentCount} onValueChange={setConvertInstallmentCount}>
-                <SelectTrigger data-testid="select-convert-installments">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Array.from({ length: 11 }, (_, i) => i + 2).map(n => (
-                    <SelectItem key={n} value={n.toString()}>
-                      {n}x de {formatCurrency(Math.floor((convertInstallmentOrder?.totalAmount || 0) / n))}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="p-3 bg-muted rounded-md space-y-1">
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Total do pedido</span>
-                <span className="font-medium">{formatCurrency(convertInstallmentOrder?.totalAmount || 0)}</span>
+          {(() => {
+            let maxInstallments = 1;
+            let hasItemLevelInstallments = false;
+            if (convertInstallmentOrder && products) {
+              for (const orderItem of convertInstallmentOrder.items) {
+                const prod = products.find(p => p.id === orderItem.itemId);
+                if (prod?.allowInstallments && prod.maxInstallments && prod.maxInstallments > maxInstallments) {
+                  maxInstallments = prod.maxInstallments;
+                  hasItemLevelInstallments = true;
+                }
+              }
+            }
+            if (!hasItemLevelInstallments && globalInstallmentRules && globalInstallmentRules.length > 0 && convertInstallmentOrder) {
+              const orderTotal = convertInstallmentOrder.totalAmount;
+              const activeRules = globalInstallmentRules
+                .filter(r => r.isActive && orderTotal >= r.minTotalAmount)
+                .sort((a, b) => b.minTotalAmount - a.minTotalAmount);
+              if (activeRules.length > 0) {
+                maxInstallments = activeRules[0].maxInstallments;
+              }
+            }
+            if (maxInstallments <= 1) {
+              return (
+                <div className="py-4">
+                  <p className="text-sm text-muted-foreground">
+                    Nenhuma regra de parcelamento ativa se aplica a este pedido. Cadastre regras de parcelamento na aba "Loja" ou configure o parcelamento nos itens.
+                  </p>
+                </div>
+              );
+            }
+            const currentCount = parseInt(convertInstallmentCount);
+            if (currentCount > maxInstallments) {
+              setTimeout(() => setConvertInstallmentCount(maxInstallments.toString()), 0);
+            }
+            if (currentCount < 2) {
+              setTimeout(() => setConvertInstallmentCount("2"), 0);
+            }
+            return (
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label>Número de Parcelas</Label>
+                  <Select value={convertInstallmentCount} onValueChange={setConvertInstallmentCount}>
+                    <SelectTrigger data-testid="select-convert-installments">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: maxInstallments - 1 }, (_, i) => i + 2).map(n => (
+                        <SelectItem key={n} value={n.toString()}>
+                          {n}x de {formatCurrency(Math.floor((convertInstallmentOrder?.totalAmount || 0) / n))}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="p-3 bg-muted rounded-md space-y-1">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Total do pedido</span>
+                    <span className="font-medium">{formatCurrency(convertInstallmentOrder?.totalAmount || 0)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Parcelas</span>
+                    <span className="font-medium">
+                      {convertInstallmentCount}x de {formatCurrency(Math.floor((convertInstallmentOrder?.totalAmount || 0) / parseInt(convertInstallmentCount)))}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground pt-1">
+                    Vencimento no dia 10 de cada mês. A 1a parcela recebe o valor restante.
+                  </p>
+                  {hasItemLevelInstallments && (
+                    <p className="text-xs text-muted-foreground">
+                      Parcelamento configurado pelo item do pedido.
+                    </p>
+                  )}
+                </div>
               </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Parcelas</span>
-                <span className="font-medium">
-                  {convertInstallmentCount}x de {formatCurrency(Math.floor((convertInstallmentOrder?.totalAmount || 0) / parseInt(convertInstallmentCount)))}
-                </span>
-              </div>
-              <p className="text-xs text-muted-foreground pt-1">
-                Vencimento no dia 10 de cada mês. A 1ª parcela recebe o valor restante.
-              </p>
-            </div>
-          </div>
+            );
+          })()}
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setConvertInstallmentOrder(null)} data-testid="button-cancel-convert-installment">
               Cancelar
@@ -1434,7 +1479,7 @@ export default function PedidosAdminPage() {
                   });
                 }
               }}
-              disabled={convertInstallmentMutation.isPending}
+              disabled={convertInstallmentMutation.isPending || parseInt(convertInstallmentCount) < 2}
               data-testid="button-confirm-convert-installment"
             >
               {convertInstallmentMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}

@@ -10692,6 +10692,120 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Converter pedido para parcelamento (admin)
+  app.post("/api/admin/shop/orders/:id/convert-installments", authenticateToken, requireMarketing, async (req: AuthRequest, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "ID inválido" });
+      }
+
+      const { installmentCount } = req.body;
+      if (!installmentCount || installmentCount < 2 || installmentCount > 12) {
+        return res.status(400).json({ message: "Número de parcelas deve ser entre 2 e 12" });
+      }
+
+      const order = await storage.getShopOrderById(id);
+      if (!order) {
+        return res.status(404).json({ message: "Pedido não encontrado" });
+      }
+
+      if (order.paymentStatus === "paid") {
+        return res.status(400).json({ message: "Pedido já foi pago integralmente" });
+      }
+
+      if (order.orderStatus === "cancelled") {
+        return res.status(400).json({ message: "Pedido cancelado não pode ser parcelado" });
+      }
+
+      const paidStatuses = ["producing", "ready", "delivered"];
+      if (paidStatuses.includes(order.orderStatus)) {
+        return res.status(400).json({ message: "Pedido já finalizado não pode ser parcelado" });
+      }
+
+      // Check if already has paid installments
+      const existingInstallments = await storage.getShopInstallments(id);
+      const hasPaidInstallment = existingInstallments.some(i => i.status === "paid");
+      if (hasPaidInstallment) {
+        return res.status(400).json({ message: "Pedido já possui parcela(s) paga(s), não pode ser reconvertido" });
+      }
+
+      // Delete existing installments if any (unpaid ones)
+      if (existingInstallments.length > 0) {
+        await storage.deleteShopInstallmentsByOrderId(id);
+      }
+
+      const finalAmount = order.totalAmount;
+      const installmentAmount = Math.floor(finalAmount / installmentCount);
+      const remainder = finalAmount - (installmentAmount * installmentCount);
+
+      for (let i = 1; i <= installmentCount; i++) {
+        const amount = i === 1 ? installmentAmount + remainder : installmentAmount;
+        const now = new Date();
+        const currentDay = now.getDate();
+        const monthsToAdd = currentDay > 10 ? i : i - 1;
+        const dueDate = new Date(now.getFullYear(), now.getMonth() + (monthsToAdd || 1), 10);
+
+        await storage.createShopInstallment({
+          orderId: id,
+          installmentNumber: i,
+          amount,
+          dueDate,
+          status: 'pending',
+        });
+      }
+
+      // Update order status and installment count
+      const updateData: any = {
+        installmentCount,
+        orderStatus: 'installment_payment',
+        paymentStatus: 'partial',
+      };
+
+      const updatedOrder = await storage.updateShopOrder(id, updateData);
+
+      // Update main treasury entry if exists
+      if (order.entryId) {
+        await storage.updateTreasuryEntry(order.entryId, {
+          paymentStatus: 'partial',
+          description: `Pedido ${order.orderCode} (${installmentCount}x)`,
+        });
+      }
+
+      // Notify user
+      try {
+        await storage.createNotification({
+          userId: order.userId,
+          type: 'order_installment',
+          title: 'Pedido Parcelado',
+          body: `Seu pedido #${order.orderCode} foi parcelado em ${installmentCount}x. Valor total: ${(finalAmount / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}. Pague suas parcelas pela área de pedidos.`,
+          data: JSON.stringify({ orderId: id, orderCode: order.orderCode }),
+        });
+
+        await sendPushToUser(order.userId, {
+          title: 'Pedido Parcelado',
+          body: `Pedido #${order.orderCode}: ${installmentCount}x de ${(installmentAmount / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`,
+          url: '/study/meus-pedidos',
+          tag: `order-installment-${id}`,
+          icon: '/logo.png',
+        });
+      } catch (notifError) {
+        console.error('Error sending installment notification:', notifError);
+      }
+
+      console.log(`[Shop] Order ${order.orderCode} converted to ${installmentCount} installments by ${req.user!.fullName}`);
+
+      res.json({ 
+        success: true, 
+        order: updatedOrder,
+        message: `Pedido convertido para ${installmentCount}x com sucesso!`
+      });
+    } catch (error) {
+      console.error("Convert order to installments error:", error);
+      res.status(500).json({ message: "Erro ao converter pedido para parcelamento" });
+    }
+  });
+
   // Atualizar status de múltiplos pedidos em lote (admin)
   app.patch("/api/admin/shop/orders/bulk-status", authenticateToken, requireMarketing, async (req: AuthRequest, res) => {
     try {

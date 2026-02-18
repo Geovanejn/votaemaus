@@ -32,7 +32,8 @@ import {
   Pencil,
   FileText,
   Share2,
-  Copy
+  Copy,
+  CreditCard
 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -457,6 +458,8 @@ export default function PedidosAdminPage() {
   const [detailsOrder, setDetailsOrder] = useState<ShopOrder | null>(null);
   const [bulkStatusDialogOpen, setBulkStatusDialogOpen] = useState(false);
   const [newBulkStatus, setNewBulkStatus] = useState("");
+  const [convertInstallmentOrder, setConvertInstallmentOrder] = useState<ShopOrder | null>(null);
+  const [convertInstallmentCount, setConvertInstallmentCount] = useState("2");
   const [manualOrderDialogOpen, setManualOrderDialogOpen] = useState(false);
   const [editingOrderId, setEditingOrderId] = useState<number | null>(null);
   const [manualOrderMemberId, setManualOrderMemberId] = useState<string>("");
@@ -615,6 +618,14 @@ export default function PedidosAdminPage() {
     return true;
   };
 
+  const canConvertToInstallments = (order: ShopOrder): boolean => {
+    if (order.paymentStatus === "paid") return false;
+    if (order.orderStatus === "cancelled") return false;
+    const finishedStatuses = ["producing", "ready", "delivered"];
+    if (finishedStatuses.includes(order.orderStatus)) return false;
+    return true;
+  };
+
   const generateKitSelectionsFromComponents = (components: KitComponentData[], existingSelections: any[] = []) => {
     if (existingSelections.length > 0) return existingSelections;
     const sels: any[] = [];
@@ -698,6 +709,22 @@ export default function PedidosAdminPage() {
     },
     onError: () => {
       toast({ title: "Erro ao atualizar status", variant: "destructive" });
+    },
+  });
+
+  const convertInstallmentMutation = useMutation({
+    mutationFn: async ({ orderId, installmentCount }: { orderId: number; installmentCount: number }) => {
+      const response = await apiRequest("POST", `/api/admin/shop/orders/${orderId}/convert-installments`, { installmentCount });
+      return await response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/shop/orders"] });
+      setConvertInstallmentOrder(null);
+      setConvertInstallmentCount("2");
+      toast({ title: data.message || "Pedido parcelado com sucesso!" });
+    },
+    onError: (error: any) => {
+      toast({ title: error?.message || "Erro ao parcelar pedido", variant: "destructive" });
     },
   });
 
@@ -1014,6 +1041,20 @@ export default function PedidosAdminPage() {
                                 <Pencil className="h-4 w-4" />
                               </Button>
                             )}
+                            {canConvertToInstallments(order) && (
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={() => {
+                                  setConvertInstallmentOrder(order);
+                                  setConvertInstallmentCount((order.installmentCount && order.installmentCount > 1) ? order.installmentCount.toString() : "2");
+                                }}
+                                data-testid={`button-convert-installment-${order.id}`}
+                                title="Parcelar pedido"
+                              >
+                                <CreditCard className="h-4 w-4" />
+                              </Button>
+                            )}
                             <Select
                               value={order.orderStatus}
                               onValueChange={(value) => updateStatusMutation.mutate({ orderId: order.id, orderStatus: value })}
@@ -1276,7 +1317,21 @@ export default function PedidosAdminPage() {
             </div>
           )}
           
-          <DialogFooter className="gap-2">
+          <DialogFooter className="gap-2 flex-wrap">
+            {detailsOrder && canConvertToInstallments(detailsOrder) && (
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setConvertInstallmentOrder(detailsOrder);
+                  setConvertInstallmentCount((detailsOrder.installmentCount && detailsOrder.installmentCount > 1) ? detailsOrder.installmentCount.toString() : "2");
+                  setDetailsOrder(null);
+                }}
+                data-testid="button-convert-installment-from-details"
+              >
+                <CreditCard className="h-4 w-4 mr-2" />
+                Parcelar
+              </Button>
+            )}
             {detailsOrder && isOrderEditable(detailsOrder) && (
               <Button
                 variant="secondary"
@@ -1316,6 +1371,74 @@ export default function PedidosAdminPage() {
             >
               {bulkUpdateMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
               Confirmar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!convertInstallmentOrder} onOpenChange={(open) => { if (!open) setConvertInstallmentOrder(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Parcelar Pedido</DialogTitle>
+            <DialogDescription>
+              Converter o pedido #{convertInstallmentOrder?.orderCode} ({formatCurrency(convertInstallmentOrder?.totalAmount || 0)}) para pagamento parcelado.
+              {convertInstallmentOrder?.installmentCount && convertInstallmentOrder.installmentCount > 1 && (
+                <span className="block mt-1 text-amber-600">
+                  Este pedido já possui {convertInstallmentOrder.installmentCount} parcelas. Ao alterar, as parcelas pendentes serão recriadas.
+                </span>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Número de Parcelas</Label>
+              <Select value={convertInstallmentCount} onValueChange={setConvertInstallmentCount}>
+                <SelectTrigger data-testid="select-convert-installments">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Array.from({ length: 11 }, (_, i) => i + 2).map(n => (
+                    <SelectItem key={n} value={n.toString()}>
+                      {n}x de {formatCurrency(Math.floor((convertInstallmentOrder?.totalAmount || 0) / n))}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="p-3 bg-muted rounded-md space-y-1">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Total do pedido</span>
+                <span className="font-medium">{formatCurrency(convertInstallmentOrder?.totalAmount || 0)}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Parcelas</span>
+                <span className="font-medium">
+                  {convertInstallmentCount}x de {formatCurrency(Math.floor((convertInstallmentOrder?.totalAmount || 0) / parseInt(convertInstallmentCount)))}
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground pt-1">
+                Vencimento no dia 10 de cada mês. A 1ª parcela recebe o valor restante.
+              </p>
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setConvertInstallmentOrder(null)} data-testid="button-cancel-convert-installment">
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => {
+                if (convertInstallmentOrder) {
+                  convertInstallmentMutation.mutate({
+                    orderId: convertInstallmentOrder.id,
+                    installmentCount: parseInt(convertInstallmentCount),
+                  });
+                }
+              }}
+              disabled={convertInstallmentMutation.isPending}
+              data-testid="button-confirm-convert-installment"
+            >
+              {convertInstallmentMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              Parcelar Pedido
             </Button>
           </DialogFooter>
         </DialogContent>

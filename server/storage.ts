@@ -80,7 +80,6 @@ import type {
   InsertShopInstallment,
   ShopInstallmentRule,
   InsertShopInstallmentRule,
-  shopInstallmentRules,
   TreasurySettings,
   InsertTreasurySettings,
   TreasuryEntry,
@@ -129,6 +128,8 @@ import type {
   FormWithQuestions,
   FormResponseWithAnswers,
 } from "@shared/schema";
+
+const { shopInstallmentRules } = schema;
 
 export interface IStorage {
   getUserByEmail(email: string): Promise<User | undefined>;

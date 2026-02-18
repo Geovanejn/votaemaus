@@ -77,6 +77,9 @@ interface Order {
   pixQrCode: string | null;
   pixExpiresAt: string | null;
   observation: string | null;
+  promoCode: string | null;
+  promoDiscount: number;
+  comboDiscount: number;
   createdAt: string;
   items: OrderItem[];
   installments?: Installment[];
@@ -459,9 +462,33 @@ export default function MeusPedidosPage() {
                       </span>
                     </div>
                   ))}
-                  <div className="border-t pt-2 flex justify-between font-bold">
+                  {(selectedOrder.promoDiscount > 0 || selectedOrder.comboDiscount > 0) && (
+                    <div className="border-t pt-2 space-y-1">
+                      <div className="flex justify-between text-sm text-muted-foreground">
+                        <span>Subtotal</span>
+                        <span data-testid="text-order-subtotal">
+                          {formatCurrency(selectedOrder.totalAmount + (selectedOrder.promoDiscount || 0) + (selectedOrder.comboDiscount || 0))}
+                        </span>
+                      </div>
+                      {selectedOrder.promoDiscount > 0 && (
+                        <div className="flex justify-between text-sm text-green-600" data-testid="text-order-promo-discount">
+                          <span>
+                            Cupom{selectedOrder.promoCode ? ` (${selectedOrder.promoCode})` : ""}
+                          </span>
+                          <span>-{formatCurrency(selectedOrder.promoDiscount)}</span>
+                        </div>
+                      )}
+                      {selectedOrder.comboDiscount > 0 && (
+                        <div className="flex justify-between text-sm text-green-600" data-testid="text-order-combo-discount">
+                          <span>Desconto Combo</span>
+                          <span>-{formatCurrency(selectedOrder.comboDiscount)}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  <div className={`${(selectedOrder.promoDiscount > 0 || selectedOrder.comboDiscount > 0) ? "pt-1" : "border-t pt-2"} flex justify-between font-bold`}>
                     <span>Total</span>
-                    <span className="text-primary">
+                    <span className="text-primary" data-testid="text-order-total">
                       {formatCurrency(selectedOrder.totalAmount)}
                     </span>
                   </div>

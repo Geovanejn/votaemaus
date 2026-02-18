@@ -117,6 +117,17 @@ async function runPendingMigrations(): Promise<void> {
       name: "create_order_push_subs_share_token_idx",
       sql: `CREATE INDEX IF NOT EXISTS order_push_subs_share_token_idx ON order_push_subscriptions (share_token);`
     },
+    {
+      name: "create_shop_installment_rules",
+      sql: `CREATE TABLE IF NOT EXISTS shop_installment_rules (
+        id SERIAL PRIMARY KEY,
+        min_total_amount INTEGER NOT NULL,
+        max_installments INTEGER NOT NULL,
+        is_active BOOLEAN NOT NULL DEFAULT true,
+        sort_order INTEGER DEFAULT 0,
+        created_at TIMESTAMP DEFAULT NOW()
+      );`
+    },
   ];
 
   for (const migration of migrations) {

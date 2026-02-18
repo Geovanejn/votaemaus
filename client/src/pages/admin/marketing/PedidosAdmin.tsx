@@ -501,6 +501,11 @@ export default function PedidosAdminPage() {
     enabled: isAuthenticated && (user?.isAdmin || isMarketing) && (manualOrderDialogOpen),
   });
 
+  const { data: globalInstallmentRules } = useQuery<Array<{ id: number; minTotalAmount: number; maxInstallments: number; isActive: boolean }>>({
+    queryKey: ["/api/shop/installment-rules"],
+    enabled: isAuthenticated && (user?.isAdmin || isMarketing) && manualOrderDialogOpen,
+  });
+
   const manualItemIds = manualOrderItems.filter(i => i.itemId > 0).map(i => i.itemId);
   const { data: comboDiscounts } = useQuery<{
     discount: number;
@@ -1721,12 +1726,29 @@ export default function PedidosAdminPage() {
 
             {(() => {
               let maxInstallments = 1;
+              let hasItemLevelInstallments = false;
               for (const orderItem of manualOrderItems) {
                 if (orderItem.itemId) {
                   const prod = products?.find(p => p.id === orderItem.itemId);
                   if (prod?.allowInstallments && prod.maxInstallments && prod.maxInstallments > maxInstallments) {
                     maxInstallments = prod.maxInstallments;
+                    hasItemLevelInstallments = true;
                   }
+                }
+              }
+              if (!hasItemLevelInstallments && globalInstallmentRules && globalInstallmentRules.length > 0) {
+                const subtotal = manualOrderItems.reduce((sum, item) => {
+                  const product = products?.find(p => p.id === item.itemId);
+                  return sum + (product?.price || 0) * item.quantity;
+                }, 0);
+                const comboDisc = comboDiscounts?.discount || 0;
+                const promoDisc = promoCodeValidation?.discountAmount || 0;
+                const finalAmount = Math.max(0, subtotal - comboDisc - promoDisc);
+                const activeRules = globalInstallmentRules
+                  .filter(r => r.isActive && finalAmount >= r.minTotalAmount)
+                  .sort((a, b) => b.minTotalAmount - a.minTotalAmount);
+                if (activeRules.length > 0) {
+                  maxInstallments = activeRules[0].maxInstallments;
                 }
               }
               if (parseInt(manualOrderInstallments) > maxInstallments) {

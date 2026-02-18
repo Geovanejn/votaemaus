@@ -664,6 +664,36 @@ export default function LojaAdmin() {
   const [editingRule, setEditingRule] = useState<InstallmentRule | null>(null);
   const [ruleForm, setRuleForm] = useState({ minTotalAmount: "", maxInstallments: "" });
 
+  // Combo discount states
+  const [isComboOpen, setIsComboOpen] = useState(false);
+  const [editingCombo, setEditingCombo] = useState<ComboDiscount | null>(null);
+  const [comboForm, setComboForm] = useState({
+    name: "",
+    description: "",
+    discountValue: "",
+    isActive: true,
+    startDate: "",
+    endDate: "",
+    selectedItemIds: [] as number[],
+  });
+
+  const hasAccess = hasMarketingPanel;
+
+  const { data: items, isLoading } = useQuery<ShopItemAdmin[]>({
+    queryKey: ["/api/admin/shop/items"],
+    enabled: hasAccess,
+  });
+
+  const { data: categories } = useQuery<ShopCategory[]>({
+    queryKey: ["/api/admin/shop/categories"],
+    enabled: hasAccess,
+  });
+
+  const { data: promoCodes, isLoading: isLoadingPromos } = useQuery<PromoCode[]>({
+    queryKey: ["/api/admin/shop/promo-codes"],
+    enabled: hasAccess,
+  });
+
   const { data: installmentRules, isLoading: isLoadingRules } = useQuery<InstallmentRule[]>({
     queryKey: ["/api/admin/shop/installment-rules"],
     enabled: hasAccess,
@@ -715,36 +745,6 @@ export default function LojaAdmin() {
     onError: () => {
       toast({ title: "Erro", description: "Não foi possível excluir a regra.", variant: "destructive" });
     },
-  });
-
-  // Combo discount states
-  const [isComboOpen, setIsComboOpen] = useState(false);
-  const [editingCombo, setEditingCombo] = useState<ComboDiscount | null>(null);
-  const [comboForm, setComboForm] = useState({
-    name: "",
-    description: "",
-    discountValue: "",
-    isActive: true,
-    startDate: "",
-    endDate: "",
-    selectedItemIds: [] as number[],
-  });
-
-  const hasAccess = hasMarketingPanel;
-
-  const { data: items, isLoading } = useQuery<ShopItemAdmin[]>({
-    queryKey: ["/api/admin/shop/items"],
-    enabled: hasAccess,
-  });
-
-  const { data: categories } = useQuery<ShopCategory[]>({
-    queryKey: ["/api/admin/shop/categories"],
-    enabled: hasAccess,
-  });
-
-  const { data: promoCodes, isLoading: isLoadingPromos } = useQuery<PromoCode[]>({
-    queryKey: ["/api/admin/shop/promo-codes"],
-    enabled: hasAccess,
   });
 
   const { data: comboDiscounts, isLoading: isLoadingCombos } = useQuery<ComboDiscount[]>({

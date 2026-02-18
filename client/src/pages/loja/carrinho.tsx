@@ -80,6 +80,11 @@ export default function LojaCarrinhoPage() {
     enabled: !!user,
   });
 
+  const { data: installmentRules } = useQuery<Array<{ id: number; minTotalAmount: number; maxInstallments: number; isActive: boolean }>>({
+    queryKey: ["/api/shop/installment-rules"],
+    enabled: !!user,
+  });
+
   // Get unique item IDs from cart for combo discount calculation
   const cartItemIds = useMemo(() => {
     if (!cartItems || cartItems.length === 0) return [];
@@ -188,16 +193,35 @@ export default function LojaCarrinhoPage() {
 
   const maxAllowedInstallments = useMemo(() => {
     if (!cartItems || cartItems.length === 0) return 1;
-    let max = 1;
-    for (const cartItem of cartItems) {
-      if (cartItem.item.allowInstallments && cartItem.item.maxInstallments) {
-        if (cartItem.item.maxInstallments > max) {
-          max = cartItem.item.maxInstallments;
+    const hasItemLevelInstallment = cartItems.some(c => c.item.allowInstallments && c.item.maxInstallments && c.item.maxInstallments > 1);
+    if (hasItemLevelInstallment) {
+      let max = 1;
+      for (const cartItem of cartItems) {
+        if (cartItem.item.allowInstallments && cartItem.item.maxInstallments) {
+          if (cartItem.item.maxInstallments > max) {
+            max = cartItem.item.maxInstallments;
+          }
         }
       }
+      return max;
     }
-    return max;
-  }, [cartItems]);
+    if (installmentRules && installmentRules.length > 0) {
+      let globalMax = 1;
+      for (const rule of installmentRules) {
+        if (total >= rule.minTotalAmount && rule.maxInstallments > globalMax) {
+          globalMax = rule.maxInstallments;
+        }
+      }
+      return globalMax;
+    }
+    return 1;
+  }, [cartItems, installmentRules, total]);
+
+  useEffect(() => {
+    if (selectedInstallments > maxAllowedInstallments) {
+      setSelectedInstallments(1);
+    }
+  }, [maxAllowedInstallments, selectedInstallments]);
 
   const installmentBreakdown = useMemo(() => {
     if (selectedInstallments <= 1) return { base: total, first: total, remainder: 0 };

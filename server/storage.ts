@@ -78,6 +78,9 @@ import type {
   InsertShopOrderItem,
   ShopInstallment,
   InsertShopInstallment,
+  ShopInstallmentRule,
+  InsertShopInstallmentRule,
+  shopInstallmentRules,
   TreasurySettings,
   InsertTreasurySettings,
   TreasuryEntry,
@@ -659,6 +662,13 @@ export interface IStorage {
   createShopInstallmentsBatch(installments: InsertShopInstallment[]): Promise<ShopInstallment[]>;
   updateShopInstallment(id: number, data: Partial<InsertShopInstallment>): Promise<ShopInstallment | null>;
   deleteShopInstallmentsByOrderId(orderId: number): Promise<void>;
+  
+  // Shop Installment Rules Methods
+  getShopInstallmentRules(): Promise<ShopInstallmentRule[]>;
+  getShopInstallmentRuleById(id: number): Promise<ShopInstallmentRule | null>;
+  createShopInstallmentRule(data: InsertShopInstallmentRule): Promise<ShopInstallmentRule>;
+  updateShopInstallmentRule(id: number, data: Partial<InsertShopInstallmentRule>): Promise<ShopInstallmentRule | null>;
+  deleteShopInstallmentRule(id: number): Promise<void>;
   
   // Promo Codes Methods
   getPromoCodes(): Promise<PromoCode[]>;
@@ -8270,6 +8280,31 @@ export class DatabaseStorage implements IStorage {
   async deleteShopInstallmentsByOrderId(orderId: number): Promise<void> {
     await db.delete(schema.shopInstallments)
       .where(eq(schema.shopInstallments.orderId, orderId));
+  }
+
+  // ==================== SHOP INSTALLMENT RULES METHODS ====================
+
+  async getShopInstallmentRules(): Promise<ShopInstallmentRule[]> {
+    return await db.select().from(shopInstallmentRules).orderBy(shopInstallmentRules.minTotalAmount);
+  }
+
+  async getShopInstallmentRuleById(id: number): Promise<ShopInstallmentRule | null> {
+    const [rule] = await db.select().from(shopInstallmentRules).where(eq(shopInstallmentRules.id, id));
+    return rule || null;
+  }
+
+  async createShopInstallmentRule(data: InsertShopInstallmentRule): Promise<ShopInstallmentRule> {
+    const [rule] = await db.insert(shopInstallmentRules).values(data).returning();
+    return rule;
+  }
+
+  async updateShopInstallmentRule(id: number, data: Partial<InsertShopInstallmentRule>): Promise<ShopInstallmentRule | null> {
+    const [rule] = await db.update(shopInstallmentRules).set(data).where(eq(shopInstallmentRules.id, id)).returning();
+    return rule || null;
+  }
+
+  async deleteShopInstallmentRule(id: number): Promise<void> {
+    await db.delete(shopInstallmentRules).where(eq(shopInstallmentRules.id, id));
   }
 
   // ==================== TREASURY SETTINGS METHODS ====================

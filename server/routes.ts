@@ -9809,6 +9809,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ==================== SHOP INSTALLMENT RULES ====================
+  
+  app.get("/api/shop/installment-rules", async (_req, res) => {
+    try {
+      const rules = await storage.getShopInstallmentRules();
+      res.json(rules.filter(r => r.isActive));
+    } catch (error) {
+      console.error("Get installment rules error:", error);
+      res.status(500).json({ message: "Erro ao buscar regras de parcelamento" });
+    }
+  });
+
+  app.get("/api/admin/shop/installment-rules", authenticateToken, requireMarketing, async (req: AuthRequest, res) => {
+    try {
+      const rules = await storage.getShopInstallmentRules();
+      res.json(rules);
+    } catch (error) {
+      console.error("Get installment rules error:", error);
+      res.status(500).json({ message: "Erro ao buscar regras de parcelamento" });
+    }
+  });
+
+  app.post("/api/admin/shop/installment-rules", authenticateToken, requireMarketing, async (req: AuthRequest, res) => {
+    try {
+      const { minTotalAmount, maxInstallments, isActive, sortOrder } = req.body;
+      if (!minTotalAmount || !maxInstallments) {
+        return res.status(400).json({ message: "Valor mínimo e máximo de parcelas são obrigatórios" });
+      }
+      const rule = await storage.createShopInstallmentRule({
+        minTotalAmount,
+        maxInstallments,
+        isActive: isActive ?? true,
+        sortOrder: sortOrder ?? 0,
+      });
+      res.status(201).json(rule);
+    } catch (error) {
+      console.error("Create installment rule error:", error);
+      res.status(500).json({ message: "Erro ao criar regra de parcelamento" });
+    }
+  });
+
+  app.patch("/api/admin/shop/installment-rules/:id", authenticateToken, requireMarketing, async (req: AuthRequest, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ message: "ID inválido" });
+      const rule = await storage.updateShopInstallmentRule(id, req.body);
+      if (!rule) return res.status(404).json({ message: "Regra não encontrada" });
+      res.json(rule);
+    } catch (error) {
+      console.error("Update installment rule error:", error);
+      res.status(500).json({ message: "Erro ao atualizar regra de parcelamento" });
+    }
+  });
+
+  app.delete("/api/admin/shop/installment-rules/:id", authenticateToken, requireMarketing, async (req: AuthRequest, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ message: "ID inválido" });
+      await storage.deleteShopInstallmentRule(id);
+      res.json({ message: "Regra deletada" });
+    } catch (error) {
+      console.error("Delete installment rule error:", error);
+      res.status(500).json({ message: "Erro ao deletar regra de parcelamento" });
+    }
+  });
+
   // Listar itens da loja (admin - todos os itens) - otimizado com versões Light (sem Base64)
   app.get("/api/admin/shop/items", authenticateToken, requireMarketing, async (req: AuthRequest, res) => {
     try {
@@ -12741,7 +12807,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         finalAmountReais: finalAmount / 100,
       });
       
-      // Validate installment count
+      // Validate installment count - check item-level first, then global rules
+      if (maxAllowedInstallments <= 1) {
+        const globalRules = await storage.getShopInstallmentRules();
+        for (const rule of globalRules) {
+          if (rule.isActive && finalAmount >= rule.minTotalAmount && rule.maxInstallments > maxAllowedInstallments) {
+            maxAllowedInstallments = rule.maxInstallments;
+          }
+        }
+      }
       const installmentCount = Math.min(Math.max(1, reqInstallmentCount || 1), maxAllowedInstallments);
       
       const year = new Date().getFullYear();

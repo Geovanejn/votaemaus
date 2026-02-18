@@ -2418,6 +2418,23 @@ export const insertShopItemSchema = createInsertSchema(shopItems).omit({
 export type InsertShopItem = z.infer<typeof insertShopItemSchema>;
 export type ShopItem = typeof shopItems.$inferSelect;
 
+export const shopInstallmentRules = pgTable("shop_installment_rules", {
+  id: serial("id").primaryKey(),
+  minTotalAmount: integer("min_total_amount").notNull(),
+  maxInstallments: integer("max_installments").notNull(),
+  isActive: boolean("is_active").notNull().default(true),
+  sortOrder: integer("sort_order").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertShopInstallmentRuleSchema = createInsertSchema(shopInstallmentRules).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertShopInstallmentRule = z.infer<typeof insertShopInstallmentRuleSchema>;
+export type ShopInstallmentRule = typeof shopInstallmentRules.$inferSelect;
+
 // Imagens dos itens
 export const shopItemImages = pgTable("shop_item_images", {
   id: serial("id").primaryKey(),

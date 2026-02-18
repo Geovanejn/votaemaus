@@ -40,7 +40,8 @@ import {
   Layers,
   Check,
   Copy,
-  Palette
+  Palette,
+  CreditCard
 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -135,6 +136,15 @@ interface ShopItemColorImage {
   gender: string;
   imageData: string;
   sortOrder: number;
+}
+
+interface InstallmentRule {
+  id: number;
+  minTotalAmount: number;
+  maxInstallments: number;
+  isActive: boolean;
+  sortOrder: number | null;
+  createdAt: string;
 }
 
 interface ComboDiscountItem {
@@ -649,6 +659,64 @@ export default function LojaAdmin() {
     maxUses: "",
   });
   
+  // Installment rules states
+  const [isInstallmentRuleOpen, setIsInstallmentRuleOpen] = useState(false);
+  const [editingRule, setEditingRule] = useState<InstallmentRule | null>(null);
+  const [ruleForm, setRuleForm] = useState({ minTotalAmount: "", maxInstallments: "" });
+
+  const { data: installmentRules, isLoading: isLoadingRules } = useQuery<InstallmentRule[]>({
+    queryKey: ["/api/admin/shop/installment-rules"],
+    enabled: hasAccess,
+  });
+
+  const createRuleMutation = useMutation({
+    mutationFn: async (data: { minTotalAmount: number; maxInstallments: number }) => {
+      return apiRequest("POST", "/api/admin/shop/installment-rules", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/shop/installment-rules"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/shop/installment-rules"] });
+      setIsInstallmentRuleOpen(false);
+      setEditingRule(null);
+      setRuleForm({ minTotalAmount: "", maxInstallments: "" });
+      toast({ title: "Regra criada", description: "A regra de parcelamento foi adicionada." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Erro", description: error.message || "Não foi possível criar a regra.", variant: "destructive" });
+    },
+  });
+
+  const updateRuleMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: Partial<InstallmentRule> }) => {
+      return apiRequest("PATCH", `/api/admin/shop/installment-rules/${id}`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/shop/installment-rules"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/shop/installment-rules"] });
+      setIsInstallmentRuleOpen(false);
+      setEditingRule(null);
+      setRuleForm({ minTotalAmount: "", maxInstallments: "" });
+      toast({ title: "Regra atualizada", description: "As alterações foram salvas." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Erro", description: error.message || "Não foi possível atualizar a regra.", variant: "destructive" });
+    },
+  });
+
+  const deleteRuleMutation = useMutation({
+    mutationFn: async (id: number) => {
+      return apiRequest("DELETE", `/api/admin/shop/installment-rules/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/shop/installment-rules"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/shop/installment-rules"] });
+      toast({ title: "Regra excluída", description: "A regra de parcelamento foi removida." });
+    },
+    onError: () => {
+      toast({ title: "Erro", description: "Não foi possível excluir a regra.", variant: "destructive" });
+    },
+  });
+
   // Combo discount states
   const [isComboOpen, setIsComboOpen] = useState(false);
   const [editingCombo, setEditingCombo] = useState<ComboDiscount | null>(null);
@@ -1914,8 +1982,152 @@ export default function LojaAdmin() {
         </div>
       </section>
 
-      {/* Combo Discounts Section */}
+      {/* Installment Rules Section */}
       <section className="py-8">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center justify-between flex-wrap gap-4 mb-6">
+            <div className="flex items-center gap-3">
+              <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-primary/10">
+                <CreditCard className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <h2 className="text-xl font-semibold">Parcelamento Geral</h2>
+                <p className="text-sm text-muted-foreground">Regras de parcelamento por valor do pedido</p>
+              </div>
+            </div>
+            <Button onClick={() => { setEditingRule(null); setRuleForm({ minTotalAmount: "", maxInstallments: "" }); setIsInstallmentRuleOpen(true); }} className="gap-2" data-testid="button-add-installment-rule">
+              <Plus className="h-4 w-4" />
+              Nova Regra
+            </Button>
+          </div>
+
+          <p className="text-sm text-muted-foreground mb-4">
+            Defina regras de parcelamento baseadas no valor total do pedido. Se um item tiver parcelamento próprio, o parcelamento do item terá prioridade.
+          </p>
+
+          {isLoadingRules ? (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {[1, 2].map((i) => (
+                <Skeleton key={i} className="h-24" />
+              ))}
+            </div>
+          ) : !installmentRules?.length ? (
+            <Card>
+              <CardContent className="py-8 text-center">
+                <CreditCard className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
+                <h3 className="font-medium mb-1">Nenhuma regra cadastrada</h3>
+                <p className="text-sm text-muted-foreground">Crie regras de parcelamento para pedidos acima de determinados valores</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {installmentRules.map((rule) => (
+                <Card key={rule.id} className={!rule.isActive ? "opacity-60" : ""}>
+                  <CardContent className="py-4">
+                    <div className="flex items-start justify-between gap-2 mb-3">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Badge variant={rule.isActive ? "default" : "secondary"}>
+                          {rule.isActive ? "Ativa" : "Inativa"}
+                        </Badge>
+                      </div>
+                      <div className="flex gap-1">
+                        <Button size="icon" variant="ghost" onClick={() => { setEditingRule(rule); setRuleForm({ minTotalAmount: (rule.minTotalAmount / 100).toString(), maxInstallments: rule.maxInstallments.toString() }); setIsInstallmentRuleOpen(true); }} data-testid={`button-edit-rule-${rule.id}`}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button size="icon" variant="ghost" onClick={() => { if (confirm("Excluir esta regra?")) deleteRuleMutation.mutate(rule.id); }} data-testid={`button-delete-rule-${rule.id}`}>
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground">Pedidos acima de</span>
+                        <span className="font-semibold text-primary" data-testid={`text-rule-amount-${rule.id}`}>{formatCurrency(rule.minTotalAmount)}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground">Parcelas</span>
+                        <span className="font-semibold" data-testid={`text-rule-installments-${rule.id}`}>até {rule.maxInstallments}x</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Installment Rule Dialog */}
+      <Dialog open={isInstallmentRuleOpen} onOpenChange={(open) => { if (!open) { setIsInstallmentRuleOpen(false); setEditingRule(null); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editingRule ? "Editar Regra" : "Nova Regra de Parcelamento"}</DialogTitle>
+            <DialogDescription>
+              Defina o valor mínimo do pedido e o número máximo de parcelas
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Valor Mínimo do Pedido (R$)</Label>
+              <Input
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="Ex: 100.00"
+                value={ruleForm.minTotalAmount}
+                onChange={(e) => setRuleForm(prev => ({ ...prev, minTotalAmount: e.target.value }))}
+                data-testid="input-rule-min-amount"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Máximo de Parcelas</Label>
+              <Input
+                type="number"
+                min="2"
+                max="12"
+                placeholder="Ex: 2"
+                value={ruleForm.maxInstallments}
+                onChange={(e) => setRuleForm(prev => ({ ...prev, maxInstallments: e.target.value }))}
+                data-testid="input-rule-max-installments"
+              />
+            </div>
+            {editingRule && (
+              <div className="flex items-center gap-2">
+                <Switch
+                  checked={editingRule.isActive}
+                  onCheckedChange={(checked) => setEditingRule(prev => prev ? { ...prev, isActive: checked } : null)}
+                  data-testid="switch-rule-active"
+                />
+                <Label>Regra ativa</Label>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsInstallmentRuleOpen(false)} data-testid="button-cancel-installment-rule">Cancelar</Button>
+            <Button
+              onClick={() => {
+                const minAmount = Math.round(parseFloat(ruleForm.minTotalAmount) * 100);
+                const maxInst = parseInt(ruleForm.maxInstallments);
+                if (isNaN(minAmount) || minAmount <= 0) { toast({ title: "Erro", description: "Informe um valor mínimo válido", variant: "destructive" }); return; }
+                if (isNaN(maxInst) || maxInst < 2 || maxInst > 12) { toast({ title: "Erro", description: "Informe de 2 a 12 parcelas", variant: "destructive" }); return; }
+                if (editingRule) {
+                  updateRuleMutation.mutate({ id: editingRule.id, data: { minTotalAmount: minAmount, maxInstallments: maxInst, isActive: editingRule.isActive } });
+                } else {
+                  createRuleMutation.mutate({ minTotalAmount: minAmount, maxInstallments: maxInst });
+                }
+              }}
+              disabled={createRuleMutation.isPending || updateRuleMutation.isPending}
+              data-testid="button-save-installment-rule"
+            >
+              {(createRuleMutation.isPending || updateRuleMutation.isPending) && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              {editingRule ? "Salvar" : "Criar Regra"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Combo Discounts Section */}
+      <section className="py-8 bg-muted/30">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between flex-wrap gap-4 mb-6">
             <div className="flex items-center gap-3">

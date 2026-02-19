@@ -726,6 +726,7 @@ export interface IStorage {
   getOrderItemKitSelections(orderItemId: number): Promise<ShopOrderItemKitSelection[]>;
   getOrderItemKitSelectionsByOrderItemIds(orderItemIds: number[]): Promise<Map<number, ShopOrderItemKitSelection[]>>;
   createOrderItemKitSelection(data: InsertShopOrderItemKitSelection): Promise<ShopOrderItemKitSelection>;
+  updateOrderItemKitSelection(id: number, data: { size?: string | null; color?: string | null; colorId?: number | null; componentItemId?: number | null; componentName?: string | null }): Promise<ShopOrderItemKitSelection>;
   deleteOrderItemKitSelections(orderItemId: number): Promise<void>;
 
   // Scheduler Reminders Methods (for persistence across restarts)
@@ -9348,6 +9349,20 @@ export class DatabaseStorage implements IStorage {
   async createOrderItemKitSelection(data: InsertShopOrderItemKitSelection): Promise<ShopOrderItemKitSelection> {
     const [selection] = await db.insert(schema.shopOrderItemKitSelections).values(data).returning();
     return selection;
+  }
+
+  async updateOrderItemKitSelection(id: number, data: { size?: string | null; color?: string | null; colorId?: number | null; componentItemId?: number | null; componentName?: string | null }): Promise<ShopOrderItemKitSelection> {
+    const updateData: any = {};
+    if (data.size !== undefined) updateData.size = data.size;
+    if (data.color !== undefined) updateData.color = data.color;
+    if (data.colorId !== undefined) updateData.colorId = data.colorId;
+    if (data.componentItemId !== undefined) updateData.componentItemId = data.componentItemId;
+    if (data.componentName !== undefined) updateData.componentName = data.componentName;
+    const [updated] = await db.update(schema.shopOrderItemKitSelections)
+      .set(updateData)
+      .where(eq(schema.shopOrderItemKitSelections.id, id))
+      .returning();
+    return updated;
   }
 
   async deleteOrderItemKitSelections(orderItemId: number): Promise<void> {

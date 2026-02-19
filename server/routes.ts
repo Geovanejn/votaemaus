@@ -11025,6 +11025,113 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/admin/shop/orders/missing-kit-sizes", authenticateToken, requireMarketing, async (req: AuthRequest, res) => {
+    try {
+      const allOrders = await storage.getShopOrders();
+      const results: any[] = [];
+
+      for (const order of allOrders) {
+        if (order.orderStatus === "cancelled") continue;
+        const orderItems = await storage.getShopOrderItems(order.id);
+        for (const oi of orderItems) {
+          const product = await storage.getShopItemById(oi.itemId);
+          if (!product) continue;
+          const productCat = product.categoryId ? await storage.getShopCategoryById(product.categoryId) : null;
+          const isKit = product.isKit || (productCat ? productCat.name.toLowerCase().includes('kit') : false);
+          if (!isKit) continue;
+
+          const kitSelections = await storage.getOrderItemKitSelections(oi.id);
+          const missingSize = kitSelections.filter((s: any) => !s.size);
+          if (missingSize.length > 0) {
+            const kitComponents = await storage.getKitComponents(oi.itemId);
+            let customerName = order.manualCustomerName || "";
+            if (!customerName && order.userId) {
+              const u = await storage.getUser(order.userId);
+              customerName = u?.fullName || "Cliente";
+            }
+            results.push({
+              orderId: order.id,
+              orderCode: order.orderCode,
+              orderStatus: order.orderStatus,
+              createdAt: order.createdAt,
+              userName: customerName,
+              orderItemId: oi.id,
+              itemName: product.name,
+              kitSelections: kitSelections.map((s: any) => {
+                const comp = kitComponents.find((c: any) => c.id === s.componentId);
+                return {
+                  id: s.id,
+                  componentId: s.componentId,
+                  componentItemId: s.componentItemId,
+                  componentName: s.componentName || comp?.componentItem?.name || 'Componente',
+                  size: s.size,
+                  color: s.color,
+                  colorId: s.colorId,
+                  availableSizes: comp?.componentItem?.sizes || [],
+                  availableColors: comp?.componentItem?.colors || [],
+                };
+              }),
+            });
+          }
+        }
+      }
+      res.json(results);
+    } catch (error) {
+      console.error("Get orders with missing kit sizes error:", error);
+      res.status(500).json({ message: "Erro ao buscar pedidos com tamanhos faltantes" });
+    }
+  });
+
+  app.patch("/api/admin/shop/orders/kit-selections/bulk-update", authenticateToken, requireMarketing, async (req: AuthRequest, res) => {
+    try {
+      const { updates } = req.body;
+      if (!updates || !Array.isArray(updates) || updates.length === 0) {
+        return res.status(400).json({ message: "Lista de atualizações obrigatória" });
+      }
+
+      const results = [];
+      for (const update of updates) {
+        const { selectionId, size, color, colorId } = update;
+        if (!selectionId) continue;
+        const updated = await storage.updateOrderItemKitSelection(selectionId, {
+          size: size !== undefined ? size : undefined,
+          color: color !== undefined ? color : undefined,
+          colorId: colorId !== undefined ? colorId : undefined,
+        });
+        results.push(updated);
+      }
+
+      res.json({ updated: results.length, selections: results });
+    } catch (error) {
+      console.error("Bulk update order kit selections error:", error);
+      res.status(500).json({ message: "Erro ao atualizar seleções em lote" });
+    }
+  });
+
+  app.patch("/api/admin/shop/orders/kit-selections/:selectionId", authenticateToken, requireMarketing, async (req: AuthRequest, res) => {
+    try {
+      const selectionId = parseInt(req.params.selectionId);
+      const { size, color, colorId, componentItemId, componentName } = req.body;
+
+      if (!selectionId || isNaN(selectionId)) {
+        return res.status(400).json({ message: "ID de seleção inválido" });
+      }
+
+      const updated = await storage.updateOrderItemKitSelection(selectionId, {
+        size: size !== undefined ? size : undefined,
+        color: color !== undefined ? color : undefined,
+        colorId: colorId !== undefined ? colorId : undefined,
+        componentItemId: componentItemId !== undefined ? componentItemId : undefined,
+        componentName: componentName !== undefined ? componentName : undefined,
+      });
+
+      res.json(updated);
+    } catch (error) {
+      console.error("Update order kit selection error:", error);
+      res.status(500).json({ message: "Erro ao atualizar seleção do kit" });
+    }
+  });
+
   // Buscar membros para criação manual de pedidos (marketing) - otimizado com projeção
   app.get("/api/admin/shop/members", authenticateToken, requireMarketing, async (req: AuthRequest, res) => {
     try {

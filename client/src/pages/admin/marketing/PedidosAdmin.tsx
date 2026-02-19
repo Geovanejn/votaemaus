@@ -474,6 +474,8 @@ export default function PedidosAdminPage() {
     kitSelections: Array<{ componentId: number; componentName: string; size: string; color: string; colorId: number }>;
   }>>([]);
   const [kitComponentsCache, setKitComponentsCache] = useState<Record<number, KitComponentData[]>>({});
+  const [fixKitSizesDialogOpen, setFixKitSizesDialogOpen] = useState(false);
+  const [kitSizeFixes, setKitSizeFixes] = useState<Record<number, string>>({});
   const [manualOrderInstallments, setManualOrderInstallments] = useState("1");
   const [manualOrderPromoCode, setManualOrderPromoCode] = useState("");
   const [promoCodeValidation, setPromoCodeValidation] = useState<{
@@ -744,6 +746,27 @@ export default function PedidosAdminPage() {
     },
   });
 
+  const { data: missingKitSizes, isLoading: isLoadingMissingKitSizes, refetch: refetchMissingKitSizes } = useQuery<any[]>({
+    queryKey: ["/api/admin/shop/orders/missing-kit-sizes"],
+    enabled: isAuthenticated && (user?.isAdmin || isMarketing) && fixKitSizesDialogOpen,
+  });
+
+  const bulkUpdateKitSelectionsMutation = useMutation({
+    mutationFn: async (updates: Array<{ selectionId: number; size: string; color?: string; colorId?: number }>) => {
+      const response = await apiRequest("PATCH", "/api/admin/shop/orders/kit-selections/bulk-update", { updates });
+      return await response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/shop/orders/missing-kit-sizes"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/shop/orders"] });
+      setKitSizeFixes({});
+      toast({ title: `${data?.updated || 0} tamanhos atualizados com sucesso!` });
+    },
+    onError: () => {
+      toast({ title: "Erro ao atualizar tamanhos", variant: "destructive" });
+    },
+  });
+
   if (!isAuthenticated || (!user?.isAdmin && !isMarketing)) {
     setLocation("/");
     return null;
@@ -816,14 +839,25 @@ export default function PedidosAdminPage() {
                   </p>
                 </div>
               </div>
-              <Button
-                onClick={() => setManualOrderDialogOpen(true)}
-                className="bg-white text-rose-600 gap-2"
-                data-testid="button-create-manual-order"
-              >
-                <Plus className="h-4 w-4" />
-                Criar Pedido
-              </Button>
+              <div className="flex items-center gap-2 flex-wrap">
+                <Button
+                  onClick={() => setFixKitSizesDialogOpen(true)}
+                  variant="outline"
+                  className="gap-2 border-white/30 text-white"
+                  data-testid="button-fix-kit-sizes"
+                >
+                  <Pencil className="h-4 w-4" />
+                  Corrigir Tamanhos Kit
+                </Button>
+                <Button
+                  onClick={() => setManualOrderDialogOpen(true)}
+                  className="bg-white text-rose-600 gap-2"
+                  data-testid="button-create-manual-order"
+                >
+                  <Plus className="h-4 w-4" />
+                  Criar Pedido
+                </Button>
+              </div>
             </div>
           </motion.div>
         </div>
@@ -2077,6 +2111,97 @@ export default function PedidosAdminPage() {
             >
               {(editingOrderId ? editManualOrderMutation.isPending : createManualOrderMutation.isPending) && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
               {editingOrderId ? "Salvar Alterações" : "Criar Pedido"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={fixKitSizesDialogOpen} onOpenChange={setFixKitSizesDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle data-testid="text-fix-kit-sizes-title">Corrigir Tamanhos de Kit</DialogTitle>
+            <DialogDescription>
+              Pedidos com itens de kit que estão sem tamanho definido. Selecione o tamanho correto para cada componente.
+            </DialogDescription>
+          </DialogHeader>
+
+          {isLoadingMissingKitSizes ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin" />
+            </div>
+          ) : !missingKitSizes || missingKitSizes.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground" data-testid="text-no-missing-sizes">
+              Todos os pedidos possuem tamanhos definidos.
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {missingKitSizes.map((item: any) => (
+                <Card key={`${item.orderId}-${item.orderItemId}`} data-testid={`card-missing-kit-${item.orderId}`}>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm flex items-center justify-between gap-1 flex-wrap">
+                      <span>{item.orderCode} - {item.userName || "Cliente"}</span>
+                      <Badge variant="outline">{item.orderStatus}</Badge>
+                    </CardTitle>
+                    <p className="text-xs text-muted-foreground">{item.itemName}</p>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {item.kitSelections.map((sel: any) => (
+                      <div key={sel.id} className="flex flex-col sm:flex-row sm:items-center gap-2 p-2 bg-muted/50 rounded-md" data-testid={`kit-selection-${sel.id}`}>
+                        <span className="text-sm font-medium min-w-[140px]">{sel.componentName}</span>
+                        <div className="flex items-center gap-2 flex-1 flex-wrap">
+                          {sel.size ? (
+                            <Badge variant="secondary" className="no-default-active-elevate">{sel.size}</Badge>
+                          ) : (
+                            <Select
+                              value={kitSizeFixes[sel.id] || ""}
+                              onValueChange={(v) => setKitSizeFixes(prev => ({ ...prev, [sel.id]: v }))}
+                            >
+                              <SelectTrigger className="w-32" data-testid={`select-size-${sel.id}`}>
+                                <SelectValue placeholder="Tamanho" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {sel.availableSizes && sel.availableSizes.length > 0 ? (
+                                  sel.availableSizes.map((s: string) => (
+                                    <SelectItem key={s} value={s}>{s}</SelectItem>
+                                  ))
+                                ) : (
+                                  ["PP", "P", "M", "G", "GG", "XG"].map((s: string) => (
+                                    <SelectItem key={s} value={s}>{s}</SelectItem>
+                                  ))
+                                )}
+                              </SelectContent>
+                            </Select>
+                          )}
+                          {sel.color && <Badge variant="outline" className="no-default-active-elevate">{sel.color}</Badge>}
+                        </div>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setFixKitSizesDialogOpen(false)} data-testid="button-cancel-fix-sizes">
+              Fechar
+            </Button>
+            <Button
+              onClick={() => {
+                const updates = Object.entries(kitSizeFixes)
+                  .filter(([, size]) => size)
+                  .map(([id, size]) => ({ selectionId: parseInt(id), size }));
+                if (updates.length === 0) {
+                  toast({ title: "Selecione ao menos um tamanho para atualizar", variant: "destructive" });
+                  return;
+                }
+                bulkUpdateKitSelectionsMutation.mutate(updates);
+              }}
+              disabled={bulkUpdateKitSelectionsMutation.isPending || Object.keys(kitSizeFixes).length === 0}
+              data-testid="button-save-kit-sizes"
+            >
+              {bulkUpdateKitSelectionsMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              Salvar Tamanhos ({Object.values(kitSizeFixes).filter(Boolean).length})
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -475,7 +475,7 @@ export default function PedidosAdminPage() {
   }>>([]);
   const [kitComponentsCache, setKitComponentsCache] = useState<Record<number, KitComponentData[]>>({});
   const [fixKitSizesDialogOpen, setFixKitSizesDialogOpen] = useState(false);
-  const [kitSizeFixes, setKitSizeFixes] = useState<Record<number, string>>({});
+  const [kitSizeFixes, setKitSizeFixes] = useState<Record<string, { size: string; selectionId: number | null; orderItemId: number; componentId: number; componentItemId: number; componentName: string; needsCreation: boolean }>>({});
   const [manualOrderInstallments, setManualOrderInstallments] = useState("1");
   const [manualOrderPromoCode, setManualOrderPromoCode] = useState("");
   const [promoCodeValidation, setPromoCodeValidation] = useState<{
@@ -752,7 +752,7 @@ export default function PedidosAdminPage() {
   });
 
   const bulkUpdateKitSelectionsMutation = useMutation({
-    mutationFn: async (updates: Array<{ selectionId: number; size: string; color?: string; colorId?: number }>) => {
+    mutationFn: async (updates: Array<{ selectionId?: number | null; size: string; orderItemId?: number; componentId?: number; componentItemId?: number; componentName?: string; needsCreation?: boolean }>) => {
       const response = await apiRequest("PATCH", "/api/admin/shop/orders/kit-selections/bulk-update", { updates });
       return await response.json();
     },
@@ -2145,37 +2145,52 @@ export default function PedidosAdminPage() {
                     <p className="text-xs text-muted-foreground">{item.itemName}</p>
                   </CardHeader>
                   <CardContent className="space-y-3">
-                    {item.kitSelections.map((sel: any) => (
-                      <div key={sel.id} className="flex flex-col sm:flex-row sm:items-center gap-2 p-2 bg-muted/50 rounded-md" data-testid={`kit-selection-${sel.id}`}>
-                        <span className="text-sm font-medium min-w-[140px]">{sel.componentName}</span>
-                        <div className="flex items-center gap-2 flex-1 flex-wrap">
-                          {sel.size ? (
-                            <Badge variant="secondary" className="no-default-active-elevate">{sel.size}</Badge>
-                          ) : (
-                            <Select
-                              value={kitSizeFixes[sel.id] || ""}
-                              onValueChange={(v) => setKitSizeFixes(prev => ({ ...prev, [sel.id]: v }))}
-                            >
-                              <SelectTrigger className="w-32" data-testid={`select-size-${sel.id}`}>
-                                <SelectValue placeholder="Tamanho" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {sel.availableSizes && sel.availableSizes.length > 0 ? (
-                                  sel.availableSizes.map((s: string) => (
-                                    <SelectItem key={s} value={s}>{s}</SelectItem>
-                                  ))
-                                ) : (
-                                  ["PP", "P", "M", "G", "GG", "XG"].map((s: string) => (
-                                    <SelectItem key={s} value={s}>{s}</SelectItem>
-                                  ))
-                                )}
-                              </SelectContent>
-                            </Select>
-                          )}
-                          {sel.color && <Badge variant="outline" className="no-default-active-elevate">{sel.color}</Badge>}
+                    {item.kitSelections.map((sel: any, idx: number) => {
+                      const key = sel.id != null ? `sel-${sel.id}` : `new-${item.orderItemId}-${sel.componentId}`;
+                      return (
+                        <div key={key} className="flex flex-col sm:flex-row sm:items-center gap-2 p-2 bg-muted/50 rounded-md" data-testid={`kit-selection-${key}`}>
+                          <span className="text-sm font-medium min-w-[140px]">{sel.componentName}</span>
+                          <div className="flex items-center gap-2 flex-1 flex-wrap">
+                            {sel.size ? (
+                              <Badge variant="secondary" className="no-default-active-elevate">{sel.size}</Badge>
+                            ) : (
+                              <Select
+                                value={kitSizeFixes[key]?.size || ""}
+                                onValueChange={(v) => setKitSizeFixes(prev => ({
+                                  ...prev,
+                                  [key]: {
+                                    size: v,
+                                    selectionId: sel.id,
+                                    orderItemId: item.orderItemId,
+                                    componentId: sel.componentId,
+                                    componentItemId: sel.componentItemId,
+                                    componentName: sel.componentName,
+                                    needsCreation: sel.needsCreation || false,
+                                  }
+                                }))}
+                              >
+                                <SelectTrigger className="w-32" data-testid={`select-size-${key}`}>
+                                  <SelectValue placeholder="Tamanho" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {sel.availableSizes && sel.availableSizes.length > 0 ? (
+                                    sel.availableSizes.map((s: string) => (
+                                      <SelectItem key={s} value={s}>{s}</SelectItem>
+                                    ))
+                                  ) : (
+                                    ["PP", "P", "M", "G", "GG", "XG"].map((s: string) => (
+                                      <SelectItem key={s} value={s}>{s}</SelectItem>
+                                    ))
+                                  )}
+                                </SelectContent>
+                              </Select>
+                            )}
+                            {sel.color && <Badge variant="outline" className="no-default-active-elevate">{sel.color}</Badge>}
+                            {sel.needsCreation && <Badge variant="destructive" className="no-default-active-elevate">Sem registro</Badge>}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </CardContent>
                 </Card>
               ))}
@@ -2188,9 +2203,17 @@ export default function PedidosAdminPage() {
             </Button>
             <Button
               onClick={() => {
-                const updates = Object.entries(kitSizeFixes)
-                  .filter(([, size]) => size)
-                  .map(([id, size]) => ({ selectionId: parseInt(id), size }));
+                const updates = Object.values(kitSizeFixes)
+                  .filter((fix) => fix.size)
+                  .map((fix) => ({
+                    selectionId: fix.selectionId,
+                    size: fix.size,
+                    orderItemId: fix.orderItemId,
+                    componentId: fix.componentId,
+                    componentItemId: fix.componentItemId,
+                    componentName: fix.componentName,
+                    needsCreation: fix.needsCreation,
+                  }));
                 if (updates.length === 0) {
                   toast({ title: "Selecione ao menos um tamanho para atualizar", variant: "destructive" });
                   return;
@@ -2201,7 +2224,7 @@ export default function PedidosAdminPage() {
               data-testid="button-save-kit-sizes"
             >
               {bulkUpdateKitSelectionsMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-              Salvar Tamanhos ({Object.values(kitSizeFixes).filter(Boolean).length})
+              Salvar Tamanhos ({Object.values(kitSizeFixes).filter(f => f.size).length})
             </Button>
           </DialogFooter>
         </DialogContent>

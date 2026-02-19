@@ -11042,6 +11042,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           const kitSelections = await storage.getOrderItemKitSelections(oi.id);
           const kitComponents = await storage.getKitComponents(oi.itemId);
+
+          const hasMissingSelections = kitSelections.length === 0 && kitComponents.length > 0;
           const selectionsWithMissingSizes = kitSelections.filter((s: any) => {
             if (s.size) return false;
             const comp = kitComponents.find((c: any) => c.id === s.componentId);
@@ -11049,39 +11051,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
             if (!componentItem) return false;
             return componentItem.hasSize === true;
           });
-          if (selectionsWithMissingSizes.length > 0) {
+          if (selectionsWithMissingSizes.length > 0 || hasMissingSelections) {
             let customerName = order.manualCustomerName || "";
             if (!customerName && order.userId) {
               const u = await storage.getUserById(order.userId);
               customerName = u?.fullName || "Cliente";
             }
-            const filteredSelections = kitSelections.filter((s: any) => {
-              const comp = kitComponents.find((c: any) => c.id === s.componentId);
-              return comp?.componentItem?.hasSize === true;
-            });
-            results.push({
-              orderId: order.id,
-              orderCode: order.orderCode,
-              orderStatus: order.orderStatus,
-              createdAt: order.createdAt,
-              userName: customerName,
-              orderItemId: oi.id,
-              itemName: product.name,
-              kitSelections: filteredSelections.map((s: any) => {
-                const comp = kitComponents.find((c: any) => c.id === s.componentId);
-                return {
-                  id: s.id,
-                  componentId: s.componentId,
-                  componentItemId: s.componentItemId,
-                  componentName: s.componentName || comp?.componentItem?.name || 'Componente',
-                  size: s.size,
-                  color: s.color,
-                  colorId: s.colorId,
-                  availableSizes: comp?.componentItem?.sizes || [],
-                  availableColors: comp?.componentItem?.colors || [],
-                };
-              }),
-            });
+            let displaySelections: any[];
+            if (hasMissingSelections) {
+              displaySelections = kitComponents
+                .filter((c: any) => c.componentItem?.hasSize === true)
+                .map((c: any) => ({
+                  id: null,
+                  componentId: c.id,
+                  componentItemId: c.componentItem?.id || 0,
+                  componentName: c.componentItem?.name || 'Componente',
+                  size: null,
+                  color: null,
+                  colorId: null,
+                  needsCreation: true,
+                  availableSizes: c.componentItem?.sizes || [],
+                  availableColors: c.componentItem?.colors || [],
+                }));
+            } else {
+              displaySelections = kitSelections
+                .filter((s: any) => {
+                  const comp = kitComponents.find((c: any) => c.id === s.componentId);
+                  return comp?.componentItem?.hasSize === true;
+                })
+                .map((s: any) => {
+                  const comp = kitComponents.find((c: any) => c.id === s.componentId);
+                  return {
+                    id: s.id,
+                    componentId: s.componentId,
+                    componentItemId: s.componentItemId,
+                    componentName: s.componentName || comp?.componentItem?.name || 'Componente',
+                    size: s.size,
+                    color: s.color,
+                    colorId: s.colorId,
+                    needsCreation: false,
+                    availableSizes: comp?.componentItem?.sizes || [],
+                    availableColors: comp?.componentItem?.colors || [],
+                  };
+                });
+            }
+            if (displaySelections.length > 0) {
+              results.push({
+                orderId: order.id,
+                orderCode: order.orderCode,
+                orderStatus: order.orderStatus,
+                createdAt: order.createdAt,
+                userName: customerName,
+                orderItemId: oi.id,
+                itemName: product.name,
+                kitSelections: displaySelections,
+              });
+            }
           }
         }
       }
@@ -11101,14 +11126,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const results = [];
       for (const update of updates) {
-        const { selectionId, size, color, colorId } = update;
-        if (!selectionId) continue;
-        const updated = await storage.updateOrderItemKitSelection(selectionId, {
-          size: size !== undefined ? size : undefined,
-          color: color !== undefined ? color : undefined,
-          colorId: colorId !== undefined ? colorId : undefined,
-        });
-        results.push(updated);
+        const { selectionId, size, color, colorId, orderItemId, componentId, componentItemId, componentName, needsCreation } = update;
+        if (needsCreation && orderItemId && componentId) {
+          const created = await storage.createOrderItemKitSelection({
+            orderItemId,
+            componentId,
+            componentItemId: componentItemId || 0,
+            componentName: componentName || 'Componente',
+            quantity: 1,
+            size: size || null,
+            color: color || null,
+            colorId: colorId || null,
+          });
+          results.push(created);
+        } else if (selectionId) {
+          const updated = await storage.updateOrderItemKitSelection(selectionId, {
+            size: size !== undefined ? size : undefined,
+            color: color !== undefined ? color : undefined,
+            colorId: colorId !== undefined ? colorId : undefined,
+          });
+          results.push(updated);
+        }
       }
 
       res.json({ updated: results.length, selections: results });

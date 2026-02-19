@@ -2732,6 +2732,7 @@ export const shopCartItemKitSelections = pgTable("shop_cart_item_kit_selections"
   id: serial("id").primaryKey(),
   cartItemId: integer("cart_item_id").notNull().references(() => shopCartItems.id, { onDelete: "cascade" }),
   componentId: integer("component_id").notNull().references(() => shopKitComponents.id, { onDelete: "cascade" }),
+  componentItemId: integer("component_item_id").references(() => shopItems.id),
   size: text("size"),
   color: text("color"),
   colorId: integer("color_id"),

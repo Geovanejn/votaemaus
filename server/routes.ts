@@ -12664,10 +12664,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       if (item.isKit && kitSelections && Array.isArray(kitSelections)) {
+        const kitComponents = await storage.getKitComponents(Number(itemId));
         for (const sel of kitSelections) {
+          const comp = kitComponents.find((c: any) => c.id === Number(sel.componentId));
           await storage.createCartItemKitSelection({
             cartItemId: cartItem.id,
             componentId: Number(sel.componentId),
+            componentItemId: comp?.componentItemId || null,
             size: sel.size || null,
             color: sel.color || null,
             colorId: sel.colorId ? Number(sel.colorId) : null,

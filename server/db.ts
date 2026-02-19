@@ -128,6 +128,14 @@ async function runPendingMigrations(): Promise<void> {
         created_at TIMESTAMP DEFAULT NOW()
       );`
     },
+    {
+      name: "fix_cart_kit_selections_nullable_columns",
+      sql: `ALTER TABLE shop_cart_item_kit_selections ALTER COLUMN component_item_id DROP NOT NULL;`
+    },
+    {
+      name: "fix_cart_kit_selections_drop_component_name_not_null",
+      sql: `ALTER TABLE shop_cart_item_kit_selections ALTER COLUMN component_name DROP NOT NULL;`
+    },
   ];
 
   for (const migration of migrations) {

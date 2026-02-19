@@ -11043,70 +11043,96 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const kitSelections = await storage.getOrderItemKitSelections(oi.id);
           const kitComponents = await storage.getKitComponents(oi.itemId);
 
-          const hasMissingSelections = kitSelections.length === 0 && kitComponents.length > 0;
-          const selectionsWithMissingSizes = kitSelections.filter((s: any) => {
-            if (s.size) return false;
+          const sizedComponents = kitComponents.filter((c: any) => c.componentItem?.hasSize === true);
+          if (sizedComponents.length === 0) continue;
+
+          let expectedCount = 0;
+          for (const comp of sizedComponents) {
+            expectedCount += (comp.quantity || 1);
+          }
+
+          const existingSizedSelections = kitSelections.filter((s: any) => {
             const comp = kitComponents.find((c: any) => c.id === s.componentId);
-            const componentItem = comp?.componentItem;
-            if (!componentItem) return false;
-            return componentItem.hasSize === true;
+            return comp?.componentItem?.hasSize === true;
           });
-          if (selectionsWithMissingSizes.length > 0 || hasMissingSelections) {
-            let customerName = order.manualCustomerName || "";
-            if (!customerName && order.userId) {
-              const u = await storage.getUserById(order.userId);
-              customerName = u?.fullName || "Cliente";
+
+          const missingSizeCount = existingSizedSelections.filter((s: any) => !s.size).length;
+          const missingSelectionCount = expectedCount - existingSizedSelections.length;
+
+          if (missingSizeCount === 0 && missingSelectionCount <= 0) continue;
+
+          let customerName = order.manualCustomerName || "";
+          if (!customerName && order.userId) {
+            const u = await storage.getUserById(order.userId);
+            customerName = u?.fullName || "Cliente";
+          }
+
+          const displaySelections: any[] = [];
+
+          for (const comp of sizedComponents) {
+            const compSelections = existingSizedSelections.filter((s: any) => s.componentId === comp.id);
+            const qty = comp.quantity || 1;
+            const rawSizes = comp.sizes || [];
+            const sizesByGender: Record<string, string[]> = {};
+            for (const s of rawSizes) {
+              const g = s.gender || 'unissex';
+              if (!sizesByGender[g]) sizesByGender[g] = [];
+              if (!sizesByGender[g].includes(s.size)) sizesByGender[g].push(s.size);
             }
-            let displaySelections: any[];
-            if (hasMissingSelections) {
-              displaySelections = kitComponents
-                .filter((c: any) => c.componentItem?.hasSize === true)
-                .map((c: any) => ({
+            const availSizes = rawSizes.map((s: any) => s.size);
+            const uniqueSizes = [...new Set(availSizes)] as string[];
+            const availColors = (comp.colors || []).map((c: any) => ({ id: c.id, name: c.name, hexCode: c.hexCode }));
+
+            for (let unitIdx = 0; unitIdx < qty; unitIdx++) {
+              const existing = compSelections[unitIdx];
+              if (existing) {
+                displaySelections.push({
+                  id: existing.id,
+                  componentId: existing.componentId,
+                  componentItemId: existing.componentItemId || comp.componentItem?.id || 0,
+                  componentName: existing.componentName || comp.componentItem?.name || 'Componente',
+                  size: existing.size,
+                  color: existing.color,
+                  colorId: existing.colorId,
+                  needsCreation: false,
+                  unitIndex: unitIdx,
+                  genderType: comp.componentItem?.genderType || 'unissex',
+                  availableSizes: uniqueSizes,
+                  sizesByGender,
+                  availableColors: availColors,
+                });
+              } else {
+                displaySelections.push({
                   id: null,
-                  componentId: c.id,
-                  componentItemId: c.componentItem?.id || 0,
-                  componentName: c.componentItem?.name || 'Componente',
+                  componentId: comp.id,
+                  componentItemId: comp.componentItem?.id || 0,
+                  componentName: comp.componentItem?.name || 'Componente',
                   size: null,
                   color: null,
                   colorId: null,
                   needsCreation: true,
-                  availableSizes: c.componentItem?.sizes || [],
-                  availableColors: c.componentItem?.colors || [],
-                }));
-            } else {
-              displaySelections = kitSelections
-                .filter((s: any) => {
-                  const comp = kitComponents.find((c: any) => c.id === s.componentId);
-                  return comp?.componentItem?.hasSize === true;
-                })
-                .map((s: any) => {
-                  const comp = kitComponents.find((c: any) => c.id === s.componentId);
-                  return {
-                    id: s.id,
-                    componentId: s.componentId,
-                    componentItemId: s.componentItemId,
-                    componentName: s.componentName || comp?.componentItem?.name || 'Componente',
-                    size: s.size,
-                    color: s.color,
-                    colorId: s.colorId,
-                    needsCreation: false,
-                    availableSizes: comp?.componentItem?.sizes || [],
-                    availableColors: comp?.componentItem?.colors || [],
-                  };
+                  unitIndex: unitIdx,
+                  genderType: comp.componentItem?.genderType || 'unissex',
+                  availableSizes: uniqueSizes,
+                  sizesByGender,
+                  availableColors: availColors,
                 });
+              }
             }
-            if (displaySelections.length > 0) {
-              results.push({
-                orderId: order.id,
-                orderCode: order.orderCode,
-                orderStatus: order.orderStatus,
-                createdAt: order.createdAt,
-                userName: customerName,
-                orderItemId: oi.id,
-                itemName: product.name,
-                kitSelections: displaySelections,
-              });
-            }
+          }
+
+          const needsFix = displaySelections.some((s: any) => !s.size);
+          if (needsFix) {
+            results.push({
+              orderId: order.id,
+              orderCode: order.orderCode,
+              orderStatus: order.orderStatus,
+              createdAt: order.createdAt,
+              userName: customerName,
+              orderItemId: oi.id,
+              itemName: product.name,
+              kitSelections: displaySelections,
+            });
           }
         }
       }

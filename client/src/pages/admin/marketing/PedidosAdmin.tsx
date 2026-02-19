@@ -2146,10 +2146,12 @@ export default function PedidosAdminPage() {
                   </CardHeader>
                   <CardContent className="space-y-3">
                     {item.kitSelections.map((sel: any, idx: number) => {
-                      const key = sel.id != null ? `sel-${sel.id}` : `new-${item.orderItemId}-${sel.componentId}`;
+                      const key = sel.id != null ? `sel-${sel.id}` : `new-${item.orderItemId}-${sel.componentId}-${sel.unitIndex ?? idx}`;
+                      const unitLabel = sel.unitIndex != null && sel.unitIndex > 0 ? ` (${sel.unitIndex + 1})` : "";
+                      const genderLabel = sel.genderType === 'feminino' ? ' (Babylook)' : sel.genderType === 'infantil' ? ' (Infantil)' : '';
                       return (
                         <div key={key} className="flex flex-col sm:flex-row sm:items-center gap-2 p-2 bg-muted/50 rounded-md" data-testid={`kit-selection-${key}`}>
-                          <span className="text-sm font-medium min-w-[140px]">{sel.componentName}</span>
+                          <span className="text-sm font-medium min-w-[140px]">{sel.componentName}{unitLabel}{genderLabel}</span>
                           <div className="flex items-center gap-2 flex-1 flex-wrap">
                             {sel.size ? (
                               <Badge variant="secondary" className="no-default-active-elevate">{sel.size}</Badge>
@@ -2169,11 +2171,22 @@ export default function PedidosAdminPage() {
                                   }
                                 }))}
                               >
-                                <SelectTrigger className="w-32" data-testid={`select-size-${key}`}>
+                                <SelectTrigger className="w-40" data-testid={`select-size-${key}`}>
                                   <SelectValue placeholder="Tamanho" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  {sel.availableSizes && sel.availableSizes.length > 0 ? (
+                                  {sel.sizesByGender && Object.keys(sel.sizesByGender).length > 1 ? (
+                                    Object.entries(sel.sizesByGender as Record<string, string[]>).map(([gender, sizes]) => (
+                                      <div key={gender}>
+                                        <div className="px-2 py-1 text-xs font-semibold text-muted-foreground uppercase">
+                                          {gender === 'masculino' ? 'Normal' : gender === 'feminino' ? 'Babylook' : gender === 'infantil' ? 'Infantil' : gender === 'unissex' ? 'Unissex' : gender}
+                                        </div>
+                                        {sizes.map((s: string) => (
+                                          <SelectItem key={`${gender}-${s}`} value={`${s} (${gender === 'masculino' ? 'Normal' : gender === 'feminino' ? 'Babylook' : gender === 'infantil' ? 'Infantil' : gender})`}>{s} - {gender === 'masculino' ? 'Normal' : gender === 'feminino' ? 'Babylook' : gender === 'infantil' ? 'Infantil' : gender}</SelectItem>
+                                        ))}
+                                      </div>
+                                    ))
+                                  ) : sel.availableSizes && sel.availableSizes.length > 0 ? (
                                     sel.availableSizes.map((s: string) => (
                                       <SelectItem key={s} value={s}>{s}</SelectItem>
                                     ))

@@ -11041,14 +11041,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (!isKit) continue;
 
           const kitSelections = await storage.getOrderItemKitSelections(oi.id);
-          const missingSize = kitSelections.filter((s: any) => !s.size);
-          if (missingSize.length > 0) {
-            const kitComponents = await storage.getKitComponents(oi.itemId);
+          const kitComponents = await storage.getKitComponents(oi.itemId);
+          const selectionsWithMissingSizes = kitSelections.filter((s: any) => {
+            if (s.size) return false;
+            const comp = kitComponents.find((c: any) => c.id === s.componentId);
+            const componentItem = comp?.componentItem;
+            if (!componentItem) return false;
+            return componentItem.hasSize === true;
+          });
+          if (selectionsWithMissingSizes.length > 0) {
             let customerName = order.manualCustomerName || "";
             if (!customerName && order.userId) {
               const u = await storage.getUserById(order.userId);
               customerName = u?.fullName || "Cliente";
             }
+            const filteredSelections = kitSelections.filter((s: any) => {
+              const comp = kitComponents.find((c: any) => c.id === s.componentId);
+              return comp?.componentItem?.hasSize === true;
+            });
             results.push({
               orderId: order.id,
               orderCode: order.orderCode,
@@ -11057,7 +11067,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               userName: customerName,
               orderItemId: oi.id,
               itemName: product.name,
-              kitSelections: kitSelections.map((s: any) => {
+              kitSelections: filteredSelections.map((s: any) => {
                 const comp = kitComponents.find((c: any) => c.id === s.componentId);
                 return {
                   id: s.id,

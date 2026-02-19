@@ -11046,7 +11046,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const kitComponents = await storage.getKitComponents(oi.itemId);
             let customerName = order.manualCustomerName || "";
             if (!customerName && order.userId) {
-              const u = await storage.getUser(order.userId);
+              const u = await storage.getUserById(order.userId);
               customerName = u?.fullName || "Cliente";
             }
             results.push({

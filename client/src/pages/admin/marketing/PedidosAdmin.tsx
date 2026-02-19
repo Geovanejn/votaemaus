@@ -475,7 +475,7 @@ export default function PedidosAdminPage() {
   }>>([]);
   const [kitComponentsCache, setKitComponentsCache] = useState<Record<number, KitComponentData[]>>({});
   const [fixKitSizesDialogOpen, setFixKitSizesDialogOpen] = useState(false);
-  const [kitSizeFixes, setKitSizeFixes] = useState<Record<string, { size: string; selectionId: number | null; orderItemId: number; componentId: number; componentItemId: number; componentName: string; needsCreation: boolean }>>({});
+  const [kitSizeFixes, setKitSizeFixes] = useState<Record<string, { size: string; color: string; colorId: number | null; selectionId: number | null; orderItemId: number; componentId: number; componentItemId: number; componentName: string; needsCreation: boolean }>>({});
   const [manualOrderInstallments, setManualOrderInstallments] = useState("1");
   const [manualOrderPromoCode, setManualOrderPromoCode] = useState("");
   const [promoCodeValidation, setPromoCodeValidation] = useState<{
@@ -1271,16 +1271,21 @@ export default function PedidosAdminPage() {
                               const sameNameEntries = allSels.filter((s: any) => s.componentName === sel.componentName);
                               const sameNameIdx = allSels.filter((s: any, i: number) => s.componentName === sel.componentName && i < idx).length;
                               const unitLabel = sameNameEntries.length > 1 ? ` ${sameNameIdx + 1}` : "";
-                              const hasMissing = !sel.size && !sel.id;
+                              const hasMissingSize = !sel.size && !sel.id;
+                              const hasMissingColor = !sel.color && sel.availableColors && sel.availableColors.length > 0;
                               return (
                                 <p key={sel.id || `kit-${idx}`} className="text-xs text-muted-foreground">
                                   {sel.componentName || "Componente"}{unitLabel}
                                   {sel.size ? (
                                     <span className="font-medium"> - {sel.size}</span>
-                                  ) : hasMissing ? (
+                                  ) : hasMissingSize ? (
                                     <span className="text-destructive font-medium"> - Tamanho pendente</span>
                                   ) : null}
-                                  {sel.color && <span className="font-medium"> / {sel.color}</span>}
+                                  {sel.color ? (
+                                    <span className="font-medium"> / {sel.color}</span>
+                                  ) : hasMissingColor ? (
+                                    <span className="text-destructive font-medium"> / Cor pendente</span>
+                                  ) : null}
                                 </p>
                               );
                             })}
@@ -2124,9 +2129,9 @@ export default function PedidosAdminPage() {
       <Dialog open={fixKitSizesDialogOpen} onOpenChange={setFixKitSizesDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle data-testid="text-fix-kit-sizes-title">Corrigir Tamanhos de Kit</DialogTitle>
+            <DialogTitle data-testid="text-fix-kit-sizes-title">Corrigir Tamanhos e Cores de Kit</DialogTitle>
             <DialogDescription>
-              Pedidos com itens de kit que estão sem tamanho definido. Selecione o tamanho correto para cada componente.
+              Pedidos com itens de kit que estão sem tamanho ou cor definida. Selecione o tamanho e cor corretos para cada componente.
             </DialogDescription>
           </DialogHeader>
 
@@ -2154,57 +2159,113 @@ export default function PedidosAdminPage() {
                       const key = sel.id != null ? `sel-${sel.id}` : `new-${item.orderItemId}-${sel.componentId}-${sel.unitIndex ?? idx}`;
                       const unitLabel = sel.unitIndex != null && sel.unitIndex > 0 ? ` (${sel.unitIndex + 1})` : "";
                       const genderLabel = sel.genderType === 'feminino' ? ' (Babylook)' : sel.genderType === 'infantil' ? ' (Infantil)' : '';
+                      const currentFix = kitSizeFixes[key];
+                      const needsSizeFix = sel.hasSize !== false && !sel.size;
+                      const needsColorFix = sel.hasColors && !sel.color;
                       return (
-                        <div key={key} className="flex flex-col sm:flex-row sm:items-center gap-2 p-2 bg-muted/50 rounded-md" data-testid={`kit-selection-${key}`}>
-                          <span className="text-sm font-medium min-w-[140px]">{sel.componentName}{unitLabel}{genderLabel}</span>
-                          <div className="flex items-center gap-2 flex-1 flex-wrap">
-                            {sel.size ? (
-                              <Badge variant="secondary" className="no-default-active-elevate">{sel.size}</Badge>
-                            ) : (
-                              <Select
-                                value={kitSizeFixes[key]?.size || ""}
-                                onValueChange={(v) => setKitSizeFixes(prev => ({
-                                  ...prev,
-                                  [key]: {
-                                    size: v,
-                                    selectionId: sel.id,
-                                    orderItemId: item.orderItemId,
-                                    componentId: sel.componentId,
-                                    componentItemId: sel.componentItemId,
-                                    componentName: sel.componentName,
-                                    needsCreation: sel.needsCreation || false,
-                                  }
-                                }))}
-                              >
-                                <SelectTrigger className="w-40" data-testid={`select-size-${key}`}>
-                                  <SelectValue placeholder="Tamanho" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {sel.sizesByGender && Object.keys(sel.sizesByGender).length > 1 ? (
-                                    Object.entries(sel.sizesByGender as Record<string, string[]>).map(([gender, sizes]) => (
-                                      <div key={gender}>
-                                        <div className="px-2 py-1 text-xs font-semibold text-muted-foreground uppercase">
-                                          {gender === 'masculino' ? 'Normal' : gender === 'feminino' ? 'Babylook' : gender === 'infantil' ? 'Infantil' : gender === 'unissex' ? 'Unissex' : gender}
-                                        </div>
-                                        {sizes.map((s: string) => (
-                                          <SelectItem key={`${gender}-${s}`} value={`${s} (${gender === 'masculino' ? 'Normal' : gender === 'feminino' ? 'Babylook' : gender === 'infantil' ? 'Infantil' : gender})`}>{s} - {gender === 'masculino' ? 'Normal' : gender === 'feminino' ? 'Babylook' : gender === 'infantil' ? 'Infantil' : gender}</SelectItem>
-                                        ))}
-                                      </div>
-                                    ))
-                                  ) : sel.availableSizes && sel.availableSizes.length > 0 ? (
-                                    sel.availableSizes.map((s: string) => (
-                                      <SelectItem key={s} value={s}>{s}</SelectItem>
-                                    ))
-                                  ) : (
-                                    ["PP", "P", "M", "G", "GG", "XG"].map((s: string) => (
-                                      <SelectItem key={s} value={s}>{s}</SelectItem>
-                                    ))
-                                  )}
-                                </SelectContent>
-                              </Select>
-                            )}
-                            {sel.color && <Badge variant="outline" className="no-default-active-elevate">{sel.color}</Badge>}
+                        <div key={key} className="flex flex-col gap-2 p-2 bg-muted/50 rounded-md" data-testid={`kit-selection-${key}`}>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-sm font-medium min-w-[140px]">{sel.componentName}{unitLabel}{genderLabel}</span>
                             {sel.needsCreation && <Badge variant="destructive" className="no-default-active-elevate">Sem registro</Badge>}
+                          </div>
+                          <div className="flex items-center gap-2 flex-wrap pl-2">
+                            {sel.hasSize !== false && (
+                              <>
+                                {sel.size ? (
+                                  <Badge variant="secondary" className="no-default-active-elevate">Tam: {sel.size}</Badge>
+                                ) : (
+                                  <Select
+                                    value={currentFix?.size || ""}
+                                    onValueChange={(v) => setKitSizeFixes(prev => ({
+                                      ...prev,
+                                      [key]: {
+                                        ...prev[key],
+                                        size: v,
+                                        color: prev[key]?.color || "",
+                                        colorId: prev[key]?.colorId || null,
+                                        selectionId: sel.id,
+                                        orderItemId: item.orderItemId,
+                                        componentId: sel.componentId,
+                                        componentItemId: sel.componentItemId,
+                                        componentName: sel.componentName,
+                                        needsCreation: sel.needsCreation || false,
+                                      }
+                                    }))}
+                                  >
+                                    <SelectTrigger className="w-40" data-testid={`select-size-${key}`}>
+                                      <SelectValue placeholder="Tamanho" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {sel.sizesByGender && Object.keys(sel.sizesByGender).length > 1 ? (
+                                        Object.entries(sel.sizesByGender as Record<string, string[]>).map(([gender, sizes]) => (
+                                          <div key={gender}>
+                                            <div className="px-2 py-1 text-xs font-semibold text-muted-foreground uppercase">
+                                              {gender === 'masculino' ? 'Normal' : gender === 'feminino' ? 'Babylook' : gender === 'infantil' ? 'Infantil' : gender === 'unissex' ? 'Unissex' : gender}
+                                            </div>
+                                            {sizes.map((s: string) => (
+                                              <SelectItem key={`${gender}-${s}`} value={`${s} (${gender === 'masculino' ? 'Normal' : gender === 'feminino' ? 'Babylook' : gender === 'infantil' ? 'Infantil' : gender})`}>{s} - {gender === 'masculino' ? 'Normal' : gender === 'feminino' ? 'Babylook' : gender === 'infantil' ? 'Infantil' : gender}</SelectItem>
+                                            ))}
+                                          </div>
+                                        ))
+                                      ) : sel.availableSizes && sel.availableSizes.length > 0 ? (
+                                        sel.availableSizes.map((s: string) => (
+                                          <SelectItem key={s} value={s}>{s}</SelectItem>
+                                        ))
+                                      ) : (
+                                        ["PP", "P", "M", "G", "GG", "XG"].map((s: string) => (
+                                          <SelectItem key={s} value={s}>{s}</SelectItem>
+                                        ))
+                                      )}
+                                    </SelectContent>
+                                  </Select>
+                                )}
+                              </>
+                            )}
+                            {sel.availableColors && sel.availableColors.length > 0 && (
+                              <>
+                                {sel.color ? (
+                                  <Badge variant="outline" className="no-default-active-elevate">Cor: {sel.color}</Badge>
+                                ) : (
+                                  <Select
+                                    value={currentFix?.colorId ? String(currentFix.colorId) : ""}
+                                    onValueChange={(v) => {
+                                      const selectedColor = sel.availableColors.find((c: any) => String(c.id) === v);
+                                      setKitSizeFixes(prev => ({
+                                        ...prev,
+                                        [key]: {
+                                          ...prev[key],
+                                          size: prev[key]?.size || "",
+                                          color: selectedColor?.name || "",
+                                          colorId: selectedColor?.id || null,
+                                          selectionId: sel.id,
+                                          orderItemId: item.orderItemId,
+                                          componentId: sel.componentId,
+                                          componentItemId: sel.componentItemId,
+                                          componentName: sel.componentName,
+                                          needsCreation: sel.needsCreation || false,
+                                        }
+                                      }));
+                                    }}
+                                  >
+                                    <SelectTrigger className="w-40" data-testid={`select-color-${key}`}>
+                                      <SelectValue placeholder="Cor" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {sel.availableColors.map((c: any) => (
+                                        <SelectItem key={c.id} value={String(c.id)}>
+                                          <div className="flex items-center gap-2">
+                                            {c.hexCode && (
+                                              <div className="w-3 h-3 rounded-full border" style={{ backgroundColor: c.hexCode }} />
+                                            )}
+                                            {c.name}
+                                          </div>
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                )}
+                              </>
+                            )}
                           </div>
                         </div>
                       );
@@ -2222,10 +2283,12 @@ export default function PedidosAdminPage() {
             <Button
               onClick={() => {
                 const updates = Object.values(kitSizeFixes)
-                  .filter((fix) => fix.size)
+                  .filter((fix) => fix.size || fix.color)
                   .map((fix) => ({
                     selectionId: fix.selectionId,
-                    size: fix.size,
+                    size: fix.size || undefined,
+                    color: fix.color || undefined,
+                    colorId: fix.colorId || undefined,
                     orderItemId: fix.orderItemId,
                     componentId: fix.componentId,
                     componentItemId: fix.componentItemId,
@@ -2233,7 +2296,7 @@ export default function PedidosAdminPage() {
                     needsCreation: fix.needsCreation,
                   }));
                 if (updates.length === 0) {
-                  toast({ title: "Selecione ao menos um tamanho para atualizar", variant: "destructive" });
+                  toast({ title: "Selecione ao menos um tamanho ou cor para atualizar", variant: "destructive" });
                   return;
                 }
                 bulkUpdateKitSelectionsMutation.mutate(updates);
@@ -2242,7 +2305,7 @@ export default function PedidosAdminPage() {
               data-testid="button-save-kit-sizes"
             >
               {bulkUpdateKitSelectionsMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-              Salvar Tamanhos ({Object.values(kitSizeFixes).filter(f => f.size).length})
+              Salvar ({Object.values(kitSizeFixes).filter(f => f.size || f.color).length})
             </Button>
           </DialogFooter>
         </DialogContent>

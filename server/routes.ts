@@ -10490,19 +10490,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           if (product?.isKit) {
             const components = kitComponentsMap.get(product.id) || [];
-            const sizedComponents = components.filter((c: any) => c.componentItem?.hasSize === true);
+            const detailedComponents = components.filter((c: any) => c.componentItem?.hasSize === true || (c.colors && c.colors.length > 0));
 
-            if (sizedComponents.length > 0) {
+            if (detailedComponents.length > 0) {
               const enrichedSelections: any[] = [];
-              for (const comp of sizedComponents) {
+              for (const comp of detailedComponents) {
                 const qty = comp.quantity || 1;
                 const compDbSelections = dbSelections.filter((s: any) => s.componentId === comp.id);
+                const availColors = (comp.colors || []).map((c: any) => ({ id: c.id, name: c.name, hexCode: c.hexCode }));
                 for (let u = 0; u < qty; u++) {
                   const existing = compDbSelections[u];
                   if (existing) {
                     enrichedSelections.push({
                       ...existing,
                       componentName: existing.componentName || comp.componentItem?.name || 'Componente',
+                      availableColors: availColors,
                     });
                   } else {
                     enrichedSelections.push({
@@ -10515,15 +10517,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
                       size: null,
                       color: null,
                       colorId: null,
+                      availableColors: availColors,
                     });
                   }
                 }
               }
-              const nonSizedSelections = dbSelections.filter((s: any) => {
+              const nonDetailedSelections = dbSelections.filter((s: any) => {
                 const comp = components.find((c: any) => c.id === s.componentId);
-                return !comp || comp.componentItem?.hasSize !== true;
+                return !comp || (comp.componentItem?.hasSize !== true && !(comp.colors && comp.colors.length > 0));
               });
-              kitSelections = [...enrichedSelections, ...nonSizedSelections];
+              kitSelections = [...enrichedSelections, ...nonDetailedSelections];
             } else if (dbSelections.length > 0) {
               kitSelections = dbSelections;
             }
@@ -11090,25 +11093,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const kitSelections = await storage.getOrderItemKitSelections(oi.id);
           const kitComponents = await storage.getKitComponents(oi.itemId);
 
-          const sizedComponents = kitComponents.filter((c: any) => c.componentItem?.hasSize === true);
-          if (sizedComponents.length === 0) continue;
+          const componentsWithDetails = kitComponents.filter((c: any) => c.componentItem?.hasSize === true || (c.colors && c.colors.length > 0));
+          if (componentsWithDetails.length === 0) continue;
 
           let expectedCount = 0;
-          for (const comp of sizedComponents) {
+          for (const comp of componentsWithDetails) {
             expectedCount += (comp.quantity || 1);
           }
 
-          const existingSizedSelections = kitSelections
+          const existingMatchedSelections = kitSelections
             .filter((s: any) => {
               const comp = kitComponents.find((c: any) => c.id === s.componentId);
-              return comp?.componentItem?.hasSize === true;
+              return comp?.componentItem?.hasSize === true || (comp?.colors && comp.colors.length > 0);
             })
             .sort((a: any, b: any) => (a.id || 0) - (b.id || 0));
 
-          const missingSizeCount = existingSizedSelections.filter((s: any) => !s.size).length;
-          const missingSelectionCount = expectedCount - existingSizedSelections.length;
+          const missingSizeCount = existingMatchedSelections.filter((s: any) => {
+            const comp = kitComponents.find((c: any) => c.id === s.componentId);
+            return comp?.componentItem?.hasSize === true && !s.size;
+          }).length;
+          const missingColorCount = existingMatchedSelections.filter((s: any) => {
+            const comp = kitComponents.find((c: any) => c.id === s.componentId);
+            return comp?.colors && comp.colors.length > 0 && !s.color;
+          }).length;
+          const missingSelectionCount = expectedCount - existingMatchedSelections.length;
 
-          if (missingSizeCount === 0 && missingSelectionCount <= 0) continue;
+          if (missingSizeCount === 0 && missingColorCount === 0 && missingSelectionCount <= 0) continue;
 
           let customerName = order.manualCustomerName || "";
           if (!customerName && order.userId) {
@@ -11118,8 +11128,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           const displaySelections: any[] = [];
 
-          for (const comp of sizedComponents) {
-            const compSelections = existingSizedSelections.filter((s: any) => s.componentId === comp.id);
+          for (const comp of componentsWithDetails) {
+            const compSelections = existingMatchedSelections.filter((s: any) => s.componentId === comp.id);
             const qty = comp.quantity || 1;
             const rawSizes = comp.sizes || [];
             const sizesByGender: Record<string, string[]> = {};
@@ -11131,6 +11141,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const availSizes = rawSizes.map((s: any) => s.size);
             const uniqueSizes = [...new Set(availSizes)] as string[];
             const availColors = (comp.colors || []).map((c: any) => ({ id: c.id, name: c.name, hexCode: c.hexCode }));
+            const hasSize = comp.componentItem?.hasSize === true;
+            const hasColors = availColors.length > 0;
 
             for (let unitIdx = 0; unitIdx < qty; unitIdx++) {
               const existing = compSelections[unitIdx];
@@ -11146,8 +11158,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   needsCreation: false,
                   unitIndex: unitIdx,
                   genderType: comp.componentItem?.genderType || 'unissex',
+                  hasSize,
                   availableSizes: uniqueSizes,
                   sizesByGender,
+                  hasColors,
                   availableColors: availColors,
                 });
               } else {
@@ -11162,15 +11176,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   needsCreation: true,
                   unitIndex: unitIdx,
                   genderType: comp.componentItem?.genderType || 'unissex',
+                  hasSize,
                   availableSizes: uniqueSizes,
                   sizesByGender,
+                  hasColors,
                   availableColors: availColors,
                 });
               }
             }
           }
 
-          const needsFix = displaySelections.some((s: any) => !s.size);
+          const needsFix = displaySelections.some((s: any) => 
+            (s.hasSize && !s.size) || (s.hasColors && !s.color)
+          );
           if (needsFix) {
             results.push({
               orderId: order.id,
@@ -13370,10 +13388,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           if (product?.isKit) {
             const components = kitComponentsMap.get(product.id) || [];
-            const sizedComponents = components.filter((c: any) => c.componentItem?.hasSize === true);
-            if (sizedComponents.length > 0) {
+            const detailedComponents = components.filter((c: any) => c.componentItem?.hasSize === true || (c.colors && c.colors.length > 0));
+            if (detailedComponents.length > 0) {
               const enrichedSelections: any[] = [];
-              for (const comp of sizedComponents) {
+              for (const comp of detailedComponents) {
                 const qty = comp.quantity || 1;
                 const compDbSelections = dbSelections.filter((s: any) => s.componentId === comp.id);
                 for (let u = 0; u < qty; u++) {
@@ -13398,11 +13416,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   }
                 }
               }
-              const nonSizedSelections = dbSelections.filter((s: any) => {
+              const nonDetailedSelections = dbSelections.filter((s: any) => {
                 const comp = components.find((c: any) => c.id === s.componentId);
-                return !comp || comp.componentItem?.hasSize !== true;
+                return !comp || (comp.componentItem?.hasSize !== true && !(comp.colors && comp.colors.length > 0));
               });
-              kitSelections = [...enrichedSelections, ...nonSizedSelections];
+              kitSelections = [...enrichedSelections, ...nonDetailedSelections];
             } else if (dbSelections.length > 0) {
               kitSelections = dbSelections;
             }

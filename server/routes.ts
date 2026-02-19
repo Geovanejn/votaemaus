@@ -10461,6 +10461,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         allOrderItemIds.length > 0 ? storage.getOrderItemKitSelectionsByOrderItemIds(allOrderItemIds) : Promise.resolve(new Map()),
       ]);
       const productsMap = new Map(products.map(p => [p.id, p]));
+
+      const kitItemIds = products.filter(p => p.isKit).map(p => p.id);
+      const kitComponentsMap = kitItemIds.length > 0 ? await storage.getKitComponentsByKitIds(kitItemIds) : new Map();
       
       const ordersWithDetails = orders.map(order => {
         const items = orderItemsMap.get(order.id) || [];
@@ -10475,19 +10478,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (item.colorId && product) {
             const allColorImages = colorImagesMap.get(product.id) || [];
             const matchingColorImg = allColorImages.find(
-              ci => ci.colorId === item.colorId && (ci.gender === item.gender || ci.gender === "unissex")
-            ) || allColorImages.find(ci => ci.colorId === item.colorId);
+              (ci: any) => ci.colorId === item.colorId && (ci.gender === item.gender || ci.gender === "unissex")
+            ) || allColorImages.find((ci: any) => ci.colorId === item.colorId);
             if (matchingColorImg) {
               firstImage = `/api/shop/images/color/${matchingColorImg.id}`;
             }
           }
           
-          const kitSelections = kitSelectionsMap.get(item.id) || [];
+          const dbSelections = (kitSelectionsMap.get(item.id) || []).sort((a: any, b: any) => (a.id || 0) - (b.id || 0));
+          let kitSelections: any[] | undefined = undefined;
+
+          if (product?.isKit) {
+            const components = kitComponentsMap.get(product.id) || [];
+            const sizedComponents = components.filter((c: any) => c.componentItem?.hasSize === true);
+
+            if (sizedComponents.length > 0) {
+              const enrichedSelections: any[] = [];
+              for (const comp of sizedComponents) {
+                const qty = comp.quantity || 1;
+                const compDbSelections = dbSelections.filter((s: any) => s.componentId === comp.id);
+                for (let u = 0; u < qty; u++) {
+                  const existing = compDbSelections[u];
+                  if (existing) {
+                    enrichedSelections.push({
+                      ...existing,
+                      componentName: existing.componentName || comp.componentItem?.name || 'Componente',
+                    });
+                  } else {
+                    enrichedSelections.push({
+                      id: null,
+                      orderItemId: item.id,
+                      componentId: comp.id,
+                      componentItemId: comp.componentItem?.id || 0,
+                      componentName: comp.componentItem?.name || 'Componente',
+                      quantity: 1,
+                      size: null,
+                      color: null,
+                      colorId: null,
+                    });
+                  }
+                }
+              }
+              const nonSizedSelections = dbSelections.filter((s: any) => {
+                const comp = components.find((c: any) => c.id === s.componentId);
+                return !comp || comp.componentItem?.hasSize !== true;
+              });
+              kitSelections = [...enrichedSelections, ...nonSizedSelections];
+            } else if (dbSelections.length > 0) {
+              kitSelections = dbSelections;
+            }
+          } else if (dbSelections.length > 0) {
+            kitSelections = dbSelections;
+          }
           
           return { 
             ...item, 
             unitPrice: item.unitPrice,
-            kitSelections: kitSelections.length > 0 ? kitSelections : undefined,
+            kitSelections: kitSelections && kitSelections.length > 0 ? kitSelections : undefined,
             product: product ? {
               id: product.id,
               name: product.name,
@@ -11051,10 +11098,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
             expectedCount += (comp.quantity || 1);
           }
 
-          const existingSizedSelections = kitSelections.filter((s: any) => {
-            const comp = kitComponents.find((c: any) => c.id === s.componentId);
-            return comp?.componentItem?.hasSize === true;
-          });
+          const existingSizedSelections = kitSelections
+            .filter((s: any) => {
+              const comp = kitComponents.find((c: any) => c.id === s.componentId);
+              return comp?.componentItem?.hasSize === true;
+            })
+            .sort((a: any, b: any) => (a.id || 0) - (b.id || 0));
 
           const missingSizeCount = existingSizedSelections.filter((s: any) => !s.size).length;
           const missingSelectionCount = expectedCount - existingSizedSelections.length;
@@ -13294,6 +13343,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       ]);
       const productsMap = new Map(products.map(p => [p.id, p]));
       
+      const kitItemIds = products.filter(p => p.isKit).map(p => p.id);
+      const kitComponentsMap = kitItemIds.length > 0 ? await storage.getKitComponentsByKitIds(kitItemIds) : new Map();
+
       const ordersWithItems = orders.map(order => {
         const items = orderItemsMap.get(order.id) || [];
         const installments = installmentsMap.get(order.id) || [];
@@ -13306,18 +13358,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (item.colorId && product) {
             const allColorImages = colorImagesMap.get(product.id) || [];
             const matchingColorImg = allColorImages.find(
-              ci => ci.colorId === item.colorId && (ci.gender === item.gender || ci.gender === "unissex")
-            ) || allColorImages.find(ci => ci.colorId === item.colorId);
+              (ci: any) => ci.colorId === item.colorId && (ci.gender === item.gender || ci.gender === "unissex")
+            ) || allColorImages.find((ci: any) => ci.colorId === item.colorId);
             if (matchingColorImg) {
               firstImage = `/api/shop/images/color/${matchingColorImg.id}`;
             }
           }
           
-          const kitSelections = kitSelectionsMap.get(item.id) || [];
+          const dbSelections = (kitSelectionsMap.get(item.id) || []).sort((a: any, b: any) => (a.id || 0) - (b.id || 0));
+          let kitSelections: any[] | undefined = undefined;
+
+          if (product?.isKit) {
+            const components = kitComponentsMap.get(product.id) || [];
+            const sizedComponents = components.filter((c: any) => c.componentItem?.hasSize === true);
+            if (sizedComponents.length > 0) {
+              const enrichedSelections: any[] = [];
+              for (const comp of sizedComponents) {
+                const qty = comp.quantity || 1;
+                const compDbSelections = dbSelections.filter((s: any) => s.componentId === comp.id);
+                for (let u = 0; u < qty; u++) {
+                  const existing = compDbSelections[u];
+                  if (existing) {
+                    enrichedSelections.push({
+                      ...existing,
+                      componentName: existing.componentName || comp.componentItem?.name || 'Componente',
+                    });
+                  } else {
+                    enrichedSelections.push({
+                      id: null,
+                      orderItemId: item.id,
+                      componentId: comp.id,
+                      componentItemId: comp.componentItem?.id || 0,
+                      componentName: comp.componentItem?.name || 'Componente',
+                      quantity: 1,
+                      size: null,
+                      color: null,
+                      colorId: null,
+                    });
+                  }
+                }
+              }
+              const nonSizedSelections = dbSelections.filter((s: any) => {
+                const comp = components.find((c: any) => c.id === s.componentId);
+                return !comp || comp.componentItem?.hasSize !== true;
+              });
+              kitSelections = [...enrichedSelections, ...nonSizedSelections];
+            } else if (dbSelections.length > 0) {
+              kitSelections = dbSelections;
+            }
+          } else if (dbSelections.length > 0) {
+            kitSelections = dbSelections;
+          }
           
           return { 
             ...item, 
-            kitSelections: kitSelections.length > 0 ? kitSelections : undefined,
+            kitSelections: kitSelections && kitSelections.length > 0 ? kitSelections : undefined,
             product: product ? { 
               id: product.id,
               name: product.name,

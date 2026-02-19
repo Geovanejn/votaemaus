@@ -1268,13 +1268,18 @@ export default function PedidosAdminPage() {
                             <p className="text-xs font-medium text-muted-foreground">Itens do Kit:</p>
                             {(item.kitSelections || []).map((sel: any, idx: number) => {
                               const allSels = item.kitSelections || [];
-                              const sameCompEntries = allSels.filter((s: any) => s.componentId === sel.componentId || s.componentName === sel.componentName);
-                              const sameCompIdx = allSels.filter((s: any, i: number) => (s.componentId === sel.componentId || s.componentName === sel.componentName) && i < idx).length;
-                              const unitLabel = sameCompEntries.length > 1 ? ` ${sameCompIdx + 1}` : "";
+                              const sameNameEntries = allSels.filter((s: any) => s.componentName === sel.componentName);
+                              const sameNameIdx = allSels.filter((s: any, i: number) => s.componentName === sel.componentName && i < idx).length;
+                              const unitLabel = sameNameEntries.length > 1 ? ` ${sameNameIdx + 1}` : "";
+                              const hasMissing = !sel.size && !sel.id;
                               return (
-                                <p key={sel.id || idx} className="text-xs text-muted-foreground">
+                                <p key={sel.id || `kit-${idx}`} className="text-xs text-muted-foreground">
                                   {sel.componentName || "Componente"}{unitLabel}
-                                  {sel.size && <span className="font-medium"> - {sel.size}</span>}
+                                  {sel.size ? (
+                                    <span className="font-medium"> - {sel.size}</span>
+                                  ) : hasMissing ? (
+                                    <span className="text-destructive font-medium"> - Tamanho pendente</span>
+                                  ) : null}
                                   {sel.color && <span className="font-medium"> / {sel.color}</span>}
                                 </p>
                               );

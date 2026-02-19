@@ -112,12 +112,14 @@ function VerseReaderActivity({
         </div>
         
         <blockquote className="text-lg italic text-center text-foreground/90 mb-4 leading-relaxed">
-          "{content?.dailyVerse || 'Porque Deus amou o mundo de tal maneira que deu o seu Filho unigênito, para que todo aquele que nele crê não pereça, mas tenha a vida eterna.'}"
+          "{content?.dailyVerse || 'Carregando versículo...'}"
         </blockquote>
         
-        <p className="text-center font-semibold text-amber-700 dark:text-amber-400" data-testid="verse-reference">
-          {content?.verseReference || 'João 3:16'}
-        </p>
+        {content?.verseReference && (
+          <p className="text-center font-semibold text-amber-700 dark:text-amber-400" data-testid="verse-reference">
+            {content.verseReference}
+          </p>
+        )}
       </Card>
 
       <div className="space-y-4">

@@ -4782,6 +4782,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (rawContent.dailyVerse) parsedContent.dailyVerse = rawContent.dailyVerse;
         if (rawContent.dailyTheme) parsedContent.dailyTheme = rawContent.dailyTheme;
         
+        // For read_daily_verse mission, fetch actual daily verse from verse system
+        if (missionType === 'read_daily_verse') {
+          const activeDailyVerse = await storage.getActiveDailyVersePost();
+          if (activeDailyVerse) {
+            parsedContent.dailyVerse = activeDailyVerse.verse;
+            parsedContent.verseReference = activeDailyVerse.reference;
+          }
+        }
+        
         // Parse bible character from JSON string
         if (rawContent.bibleCharacter) {
           try {

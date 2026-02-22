@@ -4807,9 +4807,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (rawContent.verseMemory) {
           try {
             const parsed = JSON.parse(rawContent.verseMemory);
-            parsedContent.themeToMemorize = parsed.verse || parsed.text || '';
+            const verseText = parsed.fullVerse || parsed.verse || parsed.text || '';
+            parsedContent.themeToMemorize = verseText;
             parsedContent.themeExplanation = parsed.explanation || '';
             parsedContent.verseReference = parsed.reference || '';
+            if (missionType === 'verse_memory' && verseText) {
+              parsedContent.dailyVerse = verseText;
+              parsedContent.blanks = parsed.blanks || [];
+            }
           } catch (e) {
             // If not JSON, use as plain string
             parsedContent.themeToMemorize = rawContent.verseMemory;

@@ -860,7 +860,17 @@ function VerseMemoryActivity({
   const reference = content?.verseReference || dailyVerseData?.reference || "João 3:16";
   
   const words = verse.split(' ');
-  const blanksIndices = [2, 5, 8, 11].filter(i => i < words.length);
+  const aiBlanks: string[] = (content as any)?.blanks || [];
+  const blanksIndices = (() => {
+    if (aiBlanks.length === 0) return [2, 5, 8, 11].filter(i => i < words.length);
+    const usedIndices = new Set<number>();
+    const indices: number[] = [];
+    for (const blank of aiBlanks) {
+      const idx = words.findIndex((w, i) => !usedIndices.has(i) && w.replace(/[.,;:!?]/g, '').toLowerCase() === blank.toLowerCase());
+      if (idx >= 0) { indices.push(idx); usedIndices.add(idx); }
+    }
+    return indices.length > 0 ? indices : [2, 5, 8, 11].filter(i => i < words.length);
+  })();
   const correctAnswers = blanksIndices.map(i => words[i].replace(/[.,;:!?]/g, ''));
 
   const handleCheck = () => {

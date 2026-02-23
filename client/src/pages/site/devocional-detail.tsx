@@ -272,18 +272,26 @@ export default function DevocionalDetailPage() {
     markAsReadMutation.mutate();
   };
 
-  // Get proxy URL for background image
-  const currentImageUrl = devotional?.imageUrl && !devotional.imageUrl.includes('placeholder') 
+  // Get proxy URL for background image - use mobile crop (originalImageUrl) for share card
+  const desktopImageUrl = devotional?.imageUrl && !devotional.imageUrl.includes('placeholder') 
     ? devotional.imageUrl 
     : defaultDevImg;
   
-  const proxyImageUrl = currentImageUrl.startsWith('http') && !currentImageUrl.includes(window.location.hostname)
-    ? `/api/proxy-image?url=${encodeURIComponent(currentImageUrl)}`
-    : currentImageUrl;
+  const mobileShareImageUrl = devotional?.originalImageUrl || desktopImageUrl;
+  
+  const getProxyUrl = (url: string) => {
+    if (url.startsWith('http') && !url.includes(window.location.hostname)) {
+      return `/api/proxy-image?url=${encodeURIComponent(url)}`;
+    }
+    return url;
+  };
+  
+  const proxyImageUrl = getProxyUrl(desktopImageUrl);
+  const proxyMobileImageUrl = getProxyUrl(mobileShareImageUrl);
 
-  // Pre-load and crop background image to 9:16 aspect ratio (same as daily verse)
+  // Pre-load mobile image and expand to 9:16 aspect ratio for share card
   useEffect(() => {
-    if (!proxyImageUrl || !isShareDialogOpen) {
+    if (!proxyMobileImageUrl || !isShareDialogOpen) {
       setCroppedBgDataUrl(null);
       return;
     }
@@ -293,16 +301,6 @@ export default function DevocionalDetailPage() {
     img.onload = () => {
       const targetAspect = 9 / 16;
       const imgAspect = img.naturalWidth / img.naturalHeight;
-      
-      let srcX = 0, srcY = 0, srcW = img.naturalWidth, srcH = img.naturalHeight;
-      
-      if (imgAspect > targetAspect) {
-        srcW = img.naturalHeight * targetAspect;
-        srcX = (img.naturalWidth - srcW) / 2;
-      } else {
-        srcH = img.naturalWidth / targetAspect;
-        srcY = (img.naturalHeight - srcH) / 2;
-      }
       
       const exportWidth = 2160;
       const exportHeight = 3840;
@@ -314,17 +312,29 @@ export default function DevocionalDetailPage() {
       if (ctx) {
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = 'high';
-        ctx.drawImage(img, srcX, srcY, srcW, srcH, 0, 0, exportWidth, exportHeight);
+        
+        if (imgAspect > targetAspect) {
+          const drawHeight = exportHeight;
+          const drawWidth = drawHeight * imgAspect;
+          const offsetX = (exportWidth - drawWidth) / 2;
+          ctx.drawImage(img, 0, 0, img.naturalWidth, img.naturalHeight, offsetX, 0, drawWidth, drawHeight);
+        } else {
+          const drawWidth = exportWidth;
+          const drawHeight = drawWidth / imgAspect;
+          const offsetY = (exportHeight - drawHeight) / 2;
+          ctx.drawImage(img, 0, 0, img.naturalWidth, img.naturalHeight, 0, offsetY, drawWidth, drawHeight);
+        }
+        
         setCroppedBgDataUrl(canvas.toDataURL('image/png'));
-        console.log('[Devotional Share] Background image cropped at 2160x3840');
+        console.log('[Devotional Share] Mobile image expanded to 9:16 at 2160x3840');
       }
     };
     img.onerror = () => {
-      console.log('[Devotional Share] Failed to load background image');
+      console.log('[Devotional Share] Failed to load mobile image');
       setCroppedBgDataUrl(null);
     };
-    img.src = proxyImageUrl;
-  }, [proxyImageUrl, isShareDialogOpen]);
+    img.src = proxyMobileImageUrl;
+  }, [proxyMobileImageUrl, isShareDialogOpen]);
 
   // Generate and share image - EXACTLY like daily verse
   const generateAndShareImage = useCallback(async (platform: 'whatsapp' | 'instagram' | 'download') => {
@@ -921,9 +931,9 @@ export default function DevocionalDetailPage() {
               textRendering: 'optimizeLegibility',
             }}
           >
-            {(croppedBgDataUrl || proxyImageUrl) && (
+            {(croppedBgDataUrl || proxyMobileImageUrl) && (
               <img 
-                src={croppedBgDataUrl || proxyImageUrl || ''}
+                src={croppedBgDataUrl || proxyMobileImageUrl || ''}
                 crossOrigin="anonymous"
                 alt=""
                 style={{
@@ -931,7 +941,7 @@ export default function DevocionalDetailPage() {
                   inset: 0,
                   width: '100%',
                   height: '100%',
-                  objectFit: croppedBgDataUrl ? 'fill' : 'cover',
+                  objectFit: 'cover',
                   display: 'block'
                 }}
               />

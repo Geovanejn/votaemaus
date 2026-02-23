@@ -10527,13 +10527,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   }
                 }
               }
-              const nonDetailedSelections = dbSelections.filter((s: any) => {
-                const comp = components.find((c: any) => c.id === s.componentId);
-                return !comp || (comp.componentItem?.hasSize !== true && !(comp.colors && comp.colors.length > 0));
-              });
+              const nonDetailedComponents = components.filter((c: any) => c.componentItem?.hasSize !== true && !(c.colors && c.colors.length > 0));
+              const nonDetailedSelections: any[] = [];
+              for (const comp of nonDetailedComponents) {
+                const qty = comp.quantity || 1;
+                const compDbSelections = dbSelections.filter((s: any) => s.componentId === comp.id);
+                for (let u = 0; u < qty; u++) {
+                  const existing = compDbSelections[u];
+                  if (existing) {
+                    nonDetailedSelections.push({
+                      ...existing,
+                      componentName: existing.componentName || comp.componentItem?.name || 'Componente',
+                    });
+                  } else {
+                    nonDetailedSelections.push({
+                      id: null,
+                      orderItemId: item.id,
+                      componentId: comp.id,
+                      componentItemId: comp.componentItem?.id || 0,
+                      componentName: comp.componentItem?.name || 'Componente',
+                      quantity: 1,
+                      size: null,
+                      color: null,
+                      colorId: null,
+                    });
+                  }
+                }
+              }
               kitSelections = [...enrichedSelections, ...nonDetailedSelections];
             } else if (dbSelections.length > 0) {
               kitSelections = dbSelections;
+            } else {
+              const allComponents = components || [];
+              if (allComponents.length > 0) {
+                kitSelections = [];
+                for (const comp of allComponents) {
+                  const qty = comp.quantity || 1;
+                  const compDbSelections = dbSelections.filter((s: any) => s.componentId === comp.id);
+                  for (let u = 0; u < qty; u++) {
+                    const existing = compDbSelections[u];
+                    if (existing) {
+                      kitSelections.push({
+                        ...existing,
+                        componentName: existing.componentName || comp.componentItem?.name || 'Componente',
+                      });
+                    } else {
+                      kitSelections.push({
+                        id: null,
+                        orderItemId: item.id,
+                        componentId: comp.id,
+                        componentItemId: comp.componentItem?.id || 0,
+                        componentName: comp.componentItem?.name || 'Componente',
+                        quantity: 1,
+                        size: null,
+                        color: null,
+                        colorId: null,
+                      });
+                    }
+                  }
+                }
+              }
             }
           } else if (dbSelections.length > 0) {
             kitSelections = dbSelections;
@@ -13421,13 +13474,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   }
                 }
               }
-              const nonDetailedSelections = dbSelections.filter((s: any) => {
-                const comp = components.find((c: any) => c.id === s.componentId);
-                return !comp || (comp.componentItem?.hasSize !== true && !(comp.colors && comp.colors.length > 0));
-              });
+              const nonDetailedComponents = components.filter((c: any) => c.componentItem?.hasSize !== true && !(c.colors && c.colors.length > 0));
+              const nonDetailedSelections: any[] = [];
+              for (const comp of nonDetailedComponents) {
+                const qty = comp.quantity || 1;
+                const compDbSelections = dbSelections.filter((s: any) => s.componentId === comp.id);
+                for (let u = 0; u < qty; u++) {
+                  const existing = compDbSelections[u];
+                  if (existing) {
+                    nonDetailedSelections.push({
+                      ...existing,
+                      componentName: existing.componentName || comp.componentItem?.name || 'Componente',
+                    });
+                  } else {
+                    nonDetailedSelections.push({
+                      id: null,
+                      orderItemId: item.id,
+                      componentId: comp.id,
+                      componentItemId: comp.componentItem?.id || 0,
+                      componentName: comp.componentItem?.name || 'Componente',
+                      quantity: 1,
+                      size: null,
+                      color: null,
+                      colorId: null,
+                    });
+                  }
+                }
+              }
               kitSelections = [...enrichedSelections, ...nonDetailedSelections];
             } else if (dbSelections.length > 0) {
               kitSelections = dbSelections;
+            } else {
+              const allComponents = components || [];
+              if (allComponents.length > 0) {
+                kitSelections = [];
+                for (const comp of allComponents) {
+                  const qty = comp.quantity || 1;
+                  const compDbSelections = dbSelections.filter((s: any) => s.componentId === comp.id);
+                  for (let u = 0; u < qty; u++) {
+                    const existing = compDbSelections[u];
+                    if (existing) {
+                      kitSelections.push({
+                        ...existing,
+                        componentName: existing.componentName || comp.componentItem?.name || 'Componente',
+                      });
+                    } else {
+                      kitSelections.push({
+                        id: null,
+                        orderItemId: item.id,
+                        componentId: comp.id,
+                        componentItemId: comp.componentItem?.id || 0,
+                        componentName: comp.componentItem?.name || 'Componente',
+                        quantity: 1,
+                        size: null,
+                        color: null,
+                        colorId: null,
+                      });
+                    }
+                  }
+                }
+              }
             }
           } else if (dbSelections.length > 0) {
             kitSelections = dbSelections;

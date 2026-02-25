@@ -6025,7 +6025,7 @@ export class DatabaseStorage implements IStorage {
   async getUsersBySecretaria(secretaria: string): Promise<User[]> {
     return db.select().from(schema.users)
       .where(and(
-        eq(schema.users.secretaria, secretaria),
+        sql`${schema.users.secretaria} LIKE ${'%' + secretaria + '%'}`,
         eq(schema.users.isMember, true),
         eq(schema.users.activeMember, true)
       ));

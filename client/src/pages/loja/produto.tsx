@@ -634,8 +634,8 @@ export default function LojaProdutoPage() {
           </>
         )}
 
-        {/* Gender Selection - Show for browsing even if product unavailable */}
-        {product.genderType !== "unissex" && (
+        {/* Gender Selection - Only show when product is available */}
+        {product.isAvailable && product.genderType !== "unissex" && (
           <div className="space-y-2">
             <p className="text-sm font-medium text-black">Modelo:</p>
             <div className="flex gap-2">

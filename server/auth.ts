@@ -144,7 +144,7 @@ export function requireMarketingOrTreasurer(
   res: Response,
   next: NextFunction
 ) {
-  const isMarketing = req.user?.secretaria === "marketing";
+  const isMarketing = req.user?.secretaria?.includes("marketing") ?? false;
   const isTreasurer = req.user?.isTreasurer;
   const isAdmin = req.user?.isAdmin;
   

@@ -260,6 +260,7 @@ export const updateMemberSchema = z.object({
   activeMember: z.boolean().optional(),
   isTreasurer: z.boolean().optional(),
   secretaria: z.string().optional(),
+  isMember: z.boolean().optional(),
 });
 
 export type UpdateMemberData = z.infer<typeof updateMemberSchema>;

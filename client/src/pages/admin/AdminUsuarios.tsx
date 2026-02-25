@@ -17,13 +17,6 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from "@/components/ui/select";
-import {
   Users,
   UserCheck,
   Globe,
@@ -31,6 +24,7 @@ import {
   PlusCircle,
   ChevronDown,
   ChevronUp,
+  Trash2,
 } from "lucide-react";
 import {
   Collapsible,
@@ -40,6 +34,62 @@ import {
 import { useLocation, Link } from "wouter";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import ImageCropDialog from "@/components/ImageCropDialog";
+
+const SECRETARIA_OPTIONS = [
+  { value: "espiritualidade", label: "Espiritualidade" },
+  { value: "estatistica", label: "Estatística" },
+  { value: "marketing", label: "Marketing" },
+  { value: "tesouraria", label: "Tesouraria" },
+];
+
+function parseSecretarias(secretaria?: string | null): string[] {
+  if (!secretaria || secretaria === "none") return [];
+  return secretaria.split(",").filter(Boolean);
+}
+
+function joinSecretarias(selected: string[]): string {
+  return selected.length > 0 ? selected.join(",") : "";
+}
+
+function SecretariaCheckboxes({
+  value,
+  onChange,
+  idPrefix,
+}: {
+  value: string;
+  onChange: (val: string) => void;
+  idPrefix: string;
+}) {
+  const selected = parseSecretarias(value);
+
+  const toggle = (sec: string) => {
+    const newSelected = selected.includes(sec)
+      ? selected.filter(s => s !== sec)
+      : [...selected, sec];
+    onChange(joinSecretarias(newSelected));
+  };
+
+  return (
+    <div className="space-y-2">
+      <Label>Secretarias (Opcional)</Label>
+      <div className="grid grid-cols-2 gap-2">
+        {SECRETARIA_OPTIONS.map((opt) => (
+          <div key={opt.value} className="flex items-center space-x-2">
+            <Checkbox
+              id={`${idPrefix}-sec-${opt.value}`}
+              checked={selected.includes(opt.value)}
+              onCheckedChange={() => toggle(opt.value)}
+              data-testid={`checkbox-${idPrefix}-secretaria-${opt.value}`}
+            />
+            <Label htmlFor={`${idPrefix}-sec-${opt.value}`} className="cursor-pointer text-sm">
+              {opt.label}
+            </Label>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export default function AdminUsuarios() {
   const { user } = useAuth();
@@ -51,6 +101,13 @@ export default function AdminUsuarios() {
   const [isCropDialogOpen, setIsCropDialogOpen] = useState(false);
   const [imageToCrop, setImageToCrop] = useState("");
   const [cropContext, setCropContext] = useState<"add" | "edit">("add");
+  const [expandedGoogleUser, setExpandedGoogleUser] = useState<number | null>(null);
+  const [googleUserEdits, setGoogleUserEdits] = useState<Record<number, {
+    isMember: boolean;
+    activeMember: boolean;
+    isTreasurer: boolean;
+    secretaria: string;
+  }>>({});
   const [newMember, setNewMember] = useState({
     fullName: "",
     email: "",
@@ -76,7 +133,7 @@ export default function AdminUsuarios() {
     staleTime: 30000,
   });
 
-  const { data: googleUsers = [], isLoading: loadingGoogleUsers } = useQuery<Array<{ id: number; fullName: string; email: string; photoUrl?: string; createdAt?: string }>>({
+  const { data: googleUsers = [], isLoading: loadingGoogleUsers } = useQuery<Array<{ id: number; fullName: string; email: string; photoUrl?: string; createdAt?: string; isMember?: boolean; activeMember?: boolean; isTreasurer?: boolean; secretaria?: string }>>({
     queryKey: ["/api/admin/google-users"],
     staleTime: 30000,
   });
@@ -109,14 +166,15 @@ export default function AdminUsuarios() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/members"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/google-users"] });
       toast({
-        title: "Membro removido!",
-        description: "O membro foi removido com sucesso",
+        title: "Usuário removido!",
+        description: "O usuário foi removido com sucesso",
       });
     },
     onError: (error: Error) => {
       toast({
-        title: "Erro ao remover membro",
+        title: "Erro ao remover usuário",
         description: error.message,
         variant: "destructive",
       });
@@ -124,21 +182,22 @@ export default function AdminUsuarios() {
   });
 
   const updateMemberMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: number; data: Partial<{ fullName: string; email: string; photoUrl?: string; birthdate?: string; activeMember?: boolean; isTreasurer?: boolean; secretaria?: string }> }) => {
+    mutationFn: async ({ id, data }: { id: number; data: Partial<{ fullName: string; email: string; photoUrl?: string; birthdate?: string; activeMember?: boolean; isTreasurer?: boolean; secretaria?: string; isMember?: boolean }> }) => {
       return await apiRequest("PATCH", `/api/admin/members/${id}`, data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/members"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/google-users"] });
       toast({
-        title: "Membro atualizado!",
-        description: "Os dados do membro foram atualizados com sucesso",
+        title: "Dados atualizados!",
+        description: "Os dados foram atualizados com sucesso",
       });
       setIsEditMemberOpen(false);
       setEditingMember(null);
     },
     onError: (error: Error) => {
       toast({
-        title: "Erro ao atualizar membro",
+        title: "Erro ao atualizar",
         description: error.message,
         variant: "destructive",
       });
@@ -298,6 +357,12 @@ export default function AdminUsuarios() {
     }
   };
 
+  const handleDeleteGoogleUser = (userId: number) => {
+    if (confirm("Tem certeza que deseja remover este usuário?")) {
+      deleteMemberMutation.mutate(userId);
+    }
+  };
+
   const handleEditMember = (member: { id: number; fullName: string; email: string; photoUrl?: string; birthdate?: string; activeMember?: boolean; isTreasurer?: boolean; secretaria?: string }) => {
     setEditingMember(member);
     setIsEditMemberOpen(true);
@@ -337,6 +402,65 @@ export default function AdminUsuarios() {
       .slice(0, 2)
       .join("")
       .toUpperCase();
+  };
+
+  const getGoogleUserEdits = (gUser: { id: number; isMember?: boolean; activeMember?: boolean; isTreasurer?: boolean; secretaria?: string }) => {
+    return googleUserEdits[gUser.id] ?? {
+      isMember: gUser.isMember ?? false,
+      activeMember: gUser.activeMember ?? false,
+      isTreasurer: gUser.isTreasurer ?? false,
+      secretaria: gUser.secretaria ?? "",
+    };
+  };
+
+  const updateGoogleUserField = (userId: number, field: string, value: any) => {
+    const gUser = googleUsers.find(u => u.id === userId);
+    if (!gUser) return;
+    const current = getGoogleUserEdits(gUser);
+    const updated = { ...current, [field]: value };
+    setGoogleUserEdits(prev => ({ ...prev, [userId]: updated }));
+  };
+
+  const handleToggleGoogleMember = (gUser: { id: number; isMember?: boolean; activeMember?: boolean; isTreasurer?: boolean; secretaria?: string }) => {
+    const current = getGoogleUserEdits(gUser);
+    const newIsMember = !current.isMember;
+
+    if (newIsMember) {
+      setExpandedGoogleUser(gUser.id);
+      updateGoogleUserField(gUser.id, "isMember", true);
+    } else {
+      updateMemberMutation.mutate({
+        id: gUser.id,
+        data: {
+          isMember: false,
+          activeMember: false,
+          isTreasurer: false,
+          secretaria: "",
+        },
+      });
+      setExpandedGoogleUser(null);
+      setGoogleUserEdits(prev => {
+        const copy = { ...prev };
+        delete copy[gUser.id];
+        return copy;
+      });
+    }
+  };
+
+  const handleSaveGoogleUserMember = (userId: number) => {
+    const edits = googleUserEdits[userId];
+    if (!edits) return;
+
+    updateMemberMutation.mutate({
+      id: userId,
+      data: {
+        isMember: edits.isMember,
+        activeMember: edits.activeMember,
+        isTreasurer: edits.isTreasurer,
+        secretaria: edits.secretaria || "",
+      },
+    });
+    setExpandedGoogleUser(null);
   };
 
   return (
@@ -526,33 +650,110 @@ export default function AdminUsuarios() {
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {googleUsers.map((gUser) => (
-                      <div
-                        key={gUser.id}
-                        className="flex items-center gap-4 p-4 border border-border rounded-lg"
-                        data-testid={`row-google-user-${gUser.id}`}
-                      >
-                        <Avatar className="h-10 w-10">
-                          {gUser.photoUrl ? (
-                            <AvatarImage src={gUser.photoUrl} alt={gUser.fullName} />
-                          ) : null}
-                          <AvatarFallback>{getInitials(gUser.fullName)}</AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium truncate" data-testid={`text-google-user-name-${gUser.id}`}>
-                            {gUser.fullName}
-                          </p>
-                          <p className="text-sm text-muted-foreground truncate" data-testid={`text-google-user-email-${gUser.id}`}>
-                            {gUser.email}
-                          </p>
+                    {googleUsers.map((gUser) => {
+                      const edits = getGoogleUserEdits(gUser);
+                      const isExpanded = expandedGoogleUser === gUser.id;
+                      return (
+                        <div
+                          key={gUser.id}
+                          className="border border-border rounded-lg overflow-hidden"
+                          data-testid={`row-google-user-${gUser.id}`}
+                        >
+                          <div className="flex items-center gap-4 p-4">
+                            <Avatar className="h-10 w-10">
+                              {gUser.photoUrl ? (
+                                <AvatarImage src={gUser.photoUrl} alt={gUser.fullName} />
+                              ) : null}
+                              <AvatarFallback>{getInitials(gUser.fullName)}</AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium truncate" data-testid={`text-google-user-name-${gUser.id}`}>
+                                {gUser.fullName}
+                              </p>
+                              <p className="text-sm text-muted-foreground truncate" data-testid={`text-google-user-email-${gUser.id}`}>
+                                {gUser.email}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-3 shrink-0">
+                              <div className="flex items-center space-x-2">
+                                <Checkbox
+                                  id={`google-member-${gUser.id}`}
+                                  checked={edits.isMember}
+                                  onCheckedChange={() => handleToggleGoogleMember(gUser)}
+                                  data-testid={`checkbox-google-member-${gUser.id}`}
+                                />
+                                <Label htmlFor={`google-member-${gUser.id}`} className="cursor-pointer text-sm">
+                                  Membro
+                                </Label>
+                              </div>
+                              {gUser.createdAt && (
+                                <p className="text-xs text-muted-foreground hidden sm:block" data-testid={`text-google-user-date-${gUser.id}`}>
+                                  {new Date(gUser.createdAt).toLocaleDateString('pt-BR')}
+                                </p>
+                              )}
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                onClick={() => handleDeleteGoogleUser(gUser.id)}
+                                data-testid={`button-delete-google-user-${gUser.id}`}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+
+                          {isExpanded && edits.isMember && (
+                            <div className="px-4 pb-4 pt-2 border-t border-border bg-muted/20 space-y-3">
+                              <p className="text-sm font-medium text-muted-foreground">Configurações de Membro</p>
+
+                              <div className="flex items-center space-x-2">
+                                <Checkbox
+                                  id={`google-active-${gUser.id}`}
+                                  checked={edits.activeMember}
+                                  onCheckedChange={(checked) =>
+                                    updateGoogleUserField(gUser.id, "activeMember", checked === true)
+                                  }
+                                  data-testid={`checkbox-google-active-${gUser.id}`}
+                                />
+                                <Label htmlFor={`google-active-${gUser.id}`} className="cursor-pointer text-sm">
+                                  Sócio Ativo
+                                </Label>
+                              </div>
+
+                              <div className="flex items-center space-x-2">
+                                <Checkbox
+                                  id={`google-treasurer-${gUser.id}`}
+                                  checked={edits.isTreasurer}
+                                  onCheckedChange={(checked) =>
+                                    updateGoogleUserField(gUser.id, "isTreasurer", checked === true)
+                                  }
+                                  data-testid={`checkbox-google-treasurer-${gUser.id}`}
+                                />
+                                <Label htmlFor={`google-treasurer-${gUser.id}`} className="cursor-pointer text-sm">
+                                  Tesoureiro
+                                </Label>
+                              </div>
+
+                              <SecretariaCheckboxes
+                                value={edits.secretaria}
+                                onChange={(val) => updateGoogleUserField(gUser.id, "secretaria", val)}
+                                idPrefix={`google-${gUser.id}`}
+                              />
+
+                              <Button
+                                size="sm"
+                                onClick={() => handleSaveGoogleUserMember(gUser.id)}
+                                disabled={updateMemberMutation.isPending}
+                                data-testid={`button-save-google-member-${gUser.id}`}
+                              >
+                                {updateMemberMutation.isPending ? "Salvando..." : "Salvar como Membro"}
+                              </Button>
+                            </div>
+                          )}
                         </div>
-                        {gUser.createdAt && (
-                          <p className="text-xs text-muted-foreground shrink-0" data-testid={`text-google-user-date-${gUser.id}`}>
-                            {new Date(gUser.createdAt).toLocaleDateString('pt-BR')}
-                          </p>
-                        )}
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </CardContent>
@@ -638,26 +839,11 @@ export default function AdminUsuarios() {
               </Label>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="member-secretaria">Secretaria (Opcional)</Label>
-              <Select
-                value={newMember.secretaria || "none"}
-                onValueChange={(value) =>
-                  setNewMember({ ...newMember, secretaria: value })
-                }
-              >
-                <SelectTrigger id="member-secretaria" data-testid="select-member-secretaria">
-                  <SelectValue placeholder="Selecione uma secretaria" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Nenhuma</SelectItem>
-                  <SelectItem value="espiritualidade">Espiritualidade</SelectItem>
-                  <SelectItem value="estatistica">Estatística</SelectItem>
-                  <SelectItem value="marketing">Marketing</SelectItem>
-                  <SelectItem value="tesouraria">Tesouraria</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            <SecretariaCheckboxes
+              value={newMember.secretaria}
+              onChange={(val) => setNewMember({ ...newMember, secretaria: val })}
+              idPrefix="add-member"
+            />
 
             <div className="space-y-2">
               <Label htmlFor="member-photo">Foto do Membro (Opcional)</Label>
@@ -771,26 +957,13 @@ export default function AdminUsuarios() {
               </Label>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="edit-member-secretaria">Secretaria (Opcional)</Label>
-              <Select
-                value={editingMember?.secretaria || "none"}
-                onValueChange={(value) =>
-                  setEditingMember(editingMember ? { ...editingMember, secretaria: value } : null)
-                }
-              >
-                <SelectTrigger id="edit-member-secretaria" data-testid="select-edit-member-secretaria">
-                  <SelectValue placeholder="Selecione uma secretaria" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Nenhuma</SelectItem>
-                  <SelectItem value="espiritualidade">Espiritualidade</SelectItem>
-                  <SelectItem value="estatistica">Estatística</SelectItem>
-                  <SelectItem value="marketing">Marketing</SelectItem>
-                  <SelectItem value="tesouraria">Tesouraria</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            <SecretariaCheckboxes
+              value={editingMember?.secretaria || ""}
+              onChange={(val) =>
+                setEditingMember(editingMember ? { ...editingMember, secretaria: val } : null)
+              }
+              idPrefix="edit-member"
+            />
 
             <div className="space-y-2">
               <Label htmlFor="edit-member-photo">Foto do Membro (Opcional)</Label>

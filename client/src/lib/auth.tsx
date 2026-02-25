@@ -257,10 +257,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isMember: user?.isMember ?? false,
     isTreasurer: user?.isTreasurer ?? false,
     isLoading,
-    hasEspiritualidadePanel: user?.isAdmin || user?.secretaria === "espiritualidade",
-    hasMarketingPanel: user?.isAdmin || user?.secretaria === "marketing",
+    hasEspiritualidadePanel: user?.isAdmin || (user?.secretaria?.includes("espiritualidade") ?? false),
+    hasMarketingPanel: user?.isAdmin || (user?.secretaria?.includes("marketing") ?? false),
     hasTreasuryPanel: (user?.isAdmin || user?.isTreasurer) ?? false,
-    hasEstatisticaPanel: user?.isAdmin || user?.secretaria === "estatistica",
+    hasEstatisticaPanel: user?.isAdmin || (user?.secretaria?.includes("estatistica") ?? false),
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

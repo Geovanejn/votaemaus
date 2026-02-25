@@ -20,15 +20,15 @@ The front-end uses React with a responsive design, consistent card layouts, and 
 - **Frontend**: React
 - **Backend**: Express.js
 - **Database**: PostgreSQL (managed with Drizzle ORM)
-- **Authentication**: JWT for API security (96h token expiration). Supports Google OAuth (via `google-auth-library`) for non-member users. Google users have `authProvider: "google"`, `isMember: false`, and can only access DeoGlory (public seasons) and Loja. Members use local auth (`authProvider: "local"`).
+- **Authentication**: JWT for API security (96h token expiration). Supports Google OAuth (via `google-auth-library`) for non-member users. Google users have `authProvider: "google"`, `isMember: false`, and can only access DeoGlory (public seasons) and Loja. Members use local auth (`authProvider: "local"`). Admin can promote Google users to members via PATCH. Secretaria field stores comma-separated values (e.g. "espiritualidade,marketing") — use `.includes()` checks everywhere.
 - **Scheduled Tasks**: Background tasks for Instagram sync, event/devotional notifications, daily missions, and abandoned cart reminders.
 - **Real-time Features**: Push notifications and WebSocket-based online status. Push notification subscriptions are automatically synced.
 - **AI Integration**: Generates exercises and questions from topics/PDFs with quota tracking. Prioritizes `gemini-3-flash-preview` and similar models. Includes an "Anti-Chute" (Anti-Guessing) system for question quality.
 - **Study System (DeoGlory)**: Features an XP system, daily missions, ranking, crystal rewards, achievements, and supports multiple-choice, true/false, and fill-in-the-blank quizzes. Optimized for efficient data fetching. Seasons have `accessLevel` ("members"/"all") controlling visibility for non-member users. Ranking has 4 tabs: Global (all users), UMP (members only), Anual, Revista.
-- **Admin Panel**: Manages users (Members + Google Users tabs in AdminUsuarios), events, devotionals, directory, marketing, and the DeoGlory system (lesson management, AI generation).
+- **Admin Panel**: Manages users (Members + Google Users tabs in AdminUsuarios), events, devotionals, directory, marketing, and the DeoGlory system (lesson management, AI generation). Google Users tab supports delete and "Membro" promotion with expandable fields (Sócio Ativo, Tesoureiro, Secretarias).
 - **Special Events System**: Events can include AI-generated lessons, collectible cards with rarity, image uploads, and countdowns.
 - **Treasury Module**: Manages member fees (Percapta, UMP), an e-commerce store, and event fees. Integrates Mercado Pago PIX, offers financial dashboards, and role-based access. Supports "Day 10 Rule" for UMP payments, full-year anticipation, and abandoned cart reminders.
-- **Daily Verse System**: Automated daily Bible verse publishing with AI-generated reflections, stock images, public page, social media sharing, and push notifications.
+- **Daily Verse System**: Automated daily Bible verse publishing with AI-generated reflections (5-prompt rotation: pastor, theologian, narrative, exegetical, practical — rotated by day-of-year mod 5), stock images, public page, social media sharing, and push notifications.
 - **Instagram Stories Auto-Publish**: Automated story publishing to Instagram at scheduled times:
   - 07:05 - Daily verse story with background image
   - 07:10 - Daily reflection story

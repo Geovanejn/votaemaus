@@ -1060,7 +1060,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const allUsers = await storage.getAllUsers();
       const googleUsers = allUsers
-        .filter(u => u.authProvider === "google" && !u.isMember)
+        .filter(u => u.authProvider === "google")
         .map(({ password, ...user }) => ({
           ...user,
           photoUrl: user.photoUrl ? getPublicUrl(user.photoUrl) : null,
@@ -17965,7 +17965,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!user) {
       return res.status(401).json({ message: "Não autenticado" });
     }
-    if (user.isAdmin || user.secretaria === "estatistica") {
+    if (user.isAdmin || user.secretaria?.includes("estatistica")) {
       return next();
     }
     return res.status(403).json({ message: "Acesso restrito à Secretaria de Estatística" });

@@ -251,7 +251,7 @@ const adminPanels = [
 ];
 
 export default function AdminDashboard() {
-  const { user, logout, isAdmin, hasEspiritualidadePanel, hasMarketingPanel, hasTreasuryPanel, hasEstatisticaPanel } = useAuth();
+  const { user, logout, isAdmin, isMember, hasEspiritualidadePanel, hasMarketingPanel, hasTreasuryPanel, hasEstatisticaPanel } = useAuth();
   const [, setLocation] = useLocation();
 
   const handleLogout = () => {
@@ -260,6 +260,9 @@ export default function AdminDashboard() {
   };
 
   const filteredPanels = adminPanels.filter((panel) => {
+    if (!isMember && !isAdmin) {
+      return panel.id === "deoglory-study" || panel.id === "loja";
+    }
     if (panel.forMember) return true;
     if (panel.forAdmin && isAdmin) return true;
     if (panel.forSecretaria === "espiritualidade" && hasEspiritualidadePanel) return true;

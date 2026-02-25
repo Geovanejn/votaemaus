@@ -22,6 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import {
   ArrowLeft,
   Upload,
@@ -39,6 +40,7 @@ import {
   Sparkles,
   Gift,
   Image as ImageIcon,
+  Globe,
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import type { CollectibleCard } from "@shared/schema";
@@ -289,6 +291,20 @@ export default function DeoGloryRevistaDetail() {
     },
     onError: (error: Error) => {
       toast({ title: "Erro ao atualizar nome", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const updateAccessLevelMutation = useMutation({
+    mutationFn: async (accessLevel: "members" | "all") => {
+      return apiRequest("PUT", `/api/study/admin/seasons/${seasonId}`, { accessLevel });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/study/admin/seasons", seasonId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/study/admin/seasons"] });
+      toast({ title: "Nível de acesso atualizado!" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Erro ao atualizar acesso", description: error.message, variant: "destructive" });
     },
   });
 
@@ -552,6 +568,18 @@ export default function DeoGloryRevistaDetail() {
               <p className="text-sm text-muted-foreground">
                 {season.totalLessons} {season.totalLessons === 1 ? "lição" : "lições"}
               </p>
+              <div className="flex items-center justify-between gap-2 mt-3 pt-3 border-t">
+                <div className="flex items-center gap-1.5">
+                  <Globe className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span className="text-xs text-muted-foreground">Disponível para todos</span>
+                </div>
+                <Switch
+                  checked={season.accessLevel === "all"}
+                  onCheckedChange={(checked) => updateAccessLevelMutation.mutate(checked ? "all" : "members")}
+                  disabled={updateAccessLevelMutation.isPending}
+                  data-testid="switch-access-level-detail"
+                />
+              </div>
             </CardContent>
           </Card>
 

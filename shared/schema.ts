@@ -37,6 +37,8 @@ export const users = pgTable("users", {
   secretaria: text("secretaria"),
   isTreasurer: boolean("is_treasurer").notNull().default(false),
   activeMemberSince: timestamp("active_member_since"),
+  authProvider: text("auth_provider").notNull().default("local"),
+  googleId: text("google_id").unique(),
 });
 
 export const insertUserSchema = createInsertSchema(users).omit({
@@ -984,6 +986,7 @@ export const seasons = pgTable("seasons", {
   createdBy: integer("created_by").references(() => users.id),
   aiMetadata: text("ai_metadata"),
   cardId: integer("card_id").references(() => collectibleCards.id),
+  accessLevel: text("access_level").notNull().default("members"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -1012,6 +1015,7 @@ export const updateSeasonSchema = z.object({
   endsAt: z.coerce.date().nullable().optional(),
   aiMetadata: z.string().nullable().optional(),
   cardId: z.number().nullable().optional(),
+  accessLevel: z.enum(["members", "all"]).optional(),
 }).strict();
 
 export type InsertSeason = z.infer<typeof insertSeasonSchema>;

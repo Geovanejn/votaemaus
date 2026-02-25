@@ -387,6 +387,7 @@ export interface IStorage {
   
   // Leaderboard Methods
   getLeaderboard(periodType: string, periodKey: string, limit?: number): Promise<any[]>;
+  getGlobalLeaderboard(limit?: number): Promise<any[]>;
   getAnnualLeaderboard(year: number, limit?: number): Promise<any[]>;
   getSeasonLeaderboard(seasonId: number, limit?: number): Promise<any[]>;
   
@@ -4141,7 +4142,71 @@ export class DatabaseStorage implements IStorage {
   // Leaderboard Methods
   // Global leaderboard - OPTIMIZED: Single query with subqueries instead of N+1
   async getLeaderboard(periodType: string, periodKey: string, limit: number = 20): Promise<any[]> {
-    // Single optimized query using subqueries for all XP components (including event XP)
+    const leaderboardData = await db.execute(sql`
+      SELECT 
+        u.id as user_id,
+        u.full_name,
+        u.photo_url,
+        COALESCE(sp.current_streak, 0) as current_streak,
+        COALESCE(sp.current_level, 1) as current_level,
+        COALESCE(lesson_xp.total, 0) as lesson_xp,
+        COALESCE(bonus_xp.total, 0) as bonus_xp,
+        COALESCE(achievement_xp.total, 0) as achievement_xp,
+        COALESCE(mission_xp.total, 0) as mission_xp,
+        COALESCE(event_xp.total, 0) as event_xp,
+        (
+          COALESCE(lesson_xp.total, 0) + 
+          COALESCE(bonus_xp.total, 0) + 
+          COALESCE(achievement_xp.total, 0) + 
+          COALESCE(mission_xp.total, 0) +
+          COALESCE(event_xp.total, 0)
+        ) as total_xp
+      FROM users u
+      LEFT JOIN study_profiles sp ON sp.user_id = u.id
+      LEFT JOIN LATERAL (
+        SELECT COALESCE(SUM(xp_earned), 0) as total 
+        FROM user_lesson_progress 
+        WHERE user_id = u.id AND status = 'completed'
+      ) lesson_xp ON true
+      LEFT JOIN LATERAL (
+        SELECT COALESCE(SUM(bonus_xp), 0) as total 
+        FROM weekly_practice_bonus 
+        WHERE user_id = u.id
+      ) bonus_xp ON true
+      LEFT JOIN LATERAL (
+        SELECT COALESCE(SUM(xp_reward), 0) as total 
+        FROM achievement_xp 
+        WHERE user_id = u.id
+      ) achievement_xp ON true
+      LEFT JOIN LATERAL (
+        SELECT COALESCE(SUM(mission_xp + bonus_xp), 0) as total 
+        FROM daily_mission_xp 
+        WHERE user_id = u.id
+      ) mission_xp ON true
+      LEFT JOIN LATERAL (
+        SELECT COALESCE(SUM(xp_earned), 0) as total 
+        FROM user_event_progress 
+        WHERE user_id = u.id AND completed = true
+      ) event_xp ON true
+      WHERE u.is_admin = false AND u.is_member = true
+      ORDER BY total_xp DESC
+      LIMIT ${limit}
+    `);
+    
+    const rows = leaderboardData.rows as any[];
+    
+    return rows.map((row, index) => ({
+      rank: index + 1,
+      userId: row.user_id,
+      username: row.full_name || 'Unknown',
+      photoUrl: row.photo_url,
+      totalXp: Number(row.total_xp || 0),
+      level: Number(row.current_level || 1),
+      currentStreak: Number(row.current_streak || 0),
+    }));
+  }
+
+  async getGlobalLeaderboard(limit: number = 50): Promise<any[]> {
     const leaderboardData = await db.execute(sql`
       SELECT 
         u.id as user_id,

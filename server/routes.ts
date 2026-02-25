@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import path from "path";
 import fs from "fs";
 import { randomUUID } from "crypto";
+import { OAuth2Client } from "google-auth-library";
 import { getTodayBrazilDate, createBrazilDate, getEventCurrentDay } from "./utils/date";
 import { 
   generateToken, 
@@ -922,6 +923,119 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get Google Client ID for frontend
+  app.get("/api/auth/google-client-id", (req, res) => {
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    if (!clientId) {
+      return res.status(404).json({ message: "Google login não configurado" });
+    }
+    res.json({ clientId });
+  });
+
+  // Google OAuth login
+  app.post("/api/auth/google", async (req, res) => {
+    try {
+      const { credential } = req.body;
+      if (!credential) {
+        return res.status(400).json({ message: "Token do Google não fornecido" });
+      }
+
+      const googleClientId = process.env.GOOGLE_CLIENT_ID;
+      if (!googleClientId) {
+        return res.status(500).json({ message: "Login com Google não configurado" });
+      }
+
+      const client = new OAuth2Client(googleClientId);
+      const ticket = await client.verifyIdToken({
+        idToken: credential,
+        audience: googleClientId,
+      });
+
+      const payload = ticket.getPayload();
+      if (!payload || !payload.email) {
+        return res.status(400).json({ message: "Token do Google inválido" });
+      }
+
+      const { sub: googleId, email, name, picture } = payload;
+
+      const existingUser = await storage.getUserByEmail(email);
+
+      if (existingUser) {
+        if (existingUser.isMember && existingUser.authProvider === "local") {
+          if (!existingUser.googleId) {
+            await storage.updateUser(existingUser.id, { googleId, photoUrl: picture || existingUser.photoUrl });
+          }
+          const { password, ...userWithoutPassword } = existingUser;
+          const token = generateToken({ ...userWithoutPassword, googleId, photoUrl: picture || existingUser.photoUrl });
+
+          const response: AuthResponse = {
+            user: {
+              ...userWithoutPassword,
+              googleId,
+              photoUrl: picture ? getPublicUrl(picture) : (userWithoutPassword.photoUrl ? getPublicUrl(userWithoutPassword.photoUrl) : null),
+            },
+            token,
+          };
+          return res.json(response);
+        }
+
+        const { password, ...userWithoutPassword } = existingUser;
+        if (existingUser.photoUrl !== picture && picture) {
+          await storage.updateUser(existingUser.id, { photoUrl: picture });
+        }
+        const token = generateToken({ ...userWithoutPassword, photoUrl: picture || userWithoutPassword.photoUrl });
+
+        const response: AuthResponse = {
+          user: {
+            ...userWithoutPassword,
+            photoUrl: picture || userWithoutPassword.photoUrl,
+          },
+          token,
+        };
+        return res.json(response);
+      }
+
+      const randomPassword = randomUUID();
+      const hashedPassword = await hashPassword(randomPassword);
+
+      const newUser = await storage.createUser({
+        fullName: name || email.split("@")[0],
+        email,
+        password: hashedPassword,
+        hasPassword: false,
+        photoUrl: picture || null,
+        birthdate: null,
+        isAdmin: false,
+        isMember: false,
+        activeMember: false,
+        secretaria: null,
+        isTreasurer: false,
+        activeMemberSince: null,
+        authProvider: "google",
+        googleId: googleId || null,
+      });
+
+      const { password, ...userWithoutPassword } = newUser;
+      const token = generateToken(userWithoutPassword);
+
+      const response: AuthResponse = {
+        user: {
+          ...userWithoutPassword,
+          photoUrl: picture || null,
+        },
+        token,
+      };
+
+      console.log(`[Google Auth] New Google user registered: ${email} (ID: ${newUser.id})`);
+      res.json(response);
+    } catch (error: any) {
+      console.error("Google auth error:", error);
+      res.status(400).json({ 
+        message: error.message || "Erro ao autenticar com Google" 
+      });
+    }
+  });
+
   // Listar membros para admin/tesouraria
   app.get("/api/admin/members", authenticateToken, requireTreasurer, async (req: AuthRequest, res) => {
     try {
@@ -939,6 +1053,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ 
         message: error instanceof Error ? error.message : "Erro ao buscar membros" 
       });
+    }
+  });
+
+  app.get("/api/admin/google-users", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+    try {
+      const allUsers = await storage.getAllUsers();
+      const googleUsers = allUsers
+        .filter(u => u.authProvider === "google" && !u.isMember)
+        .map(({ password, ...user }) => ({
+          ...user,
+          photoUrl: user.photoUrl ? getPublicUrl(user.photoUrl) : null,
+        }));
+      res.json(googleUsers);
+    } catch (error) {
+      console.error("Get google users error:", error);
+      res.status(500).json({ message: "Erro ao buscar usuários Google" });
     }
   });
 
@@ -2631,8 +2761,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const now = new Date();
       let periodKey: string;
       
-      if (periodType === 'weekly') {
-        // Weekly/General ranking - all XP from all sources
+      if (periodType === 'global') {
+        periodKey = 'global';
+        const leaderboard = await storage.getGlobalLeaderboard(50);
+        res.json({ periodType: 'global', periodKey, entries: convertImageUrlsArray(leaderboard) });
+      } else if (periodType === 'weekly') {
         const weekNumber = Math.ceil((now.getDate() + now.getDay()) / 7);
         periodKey = `${now.getFullYear()}-W${weekNumber.toString().padStart(2, '0')}`;
         const leaderboard = await storage.getLeaderboard(periodType, periodKey, 50);
@@ -6989,7 +7122,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // OPTIMIZED: Batch fetch all season progress in single query instead of N+1
   app.get("/api/study/seasons", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      const seasons = await storage.getPublishedSeasons();
+      let seasons = await storage.getPublishedSeasons();
+      
+      if (!req.user!.isMember && !req.user!.isAdmin) {
+        seasons = seasons.filter(s => (s as any).accessLevel === "all");
+      }
       
       // Batch fetch all progress in one query
       const seasonIds = seasons.map(s => s.id);
@@ -7038,6 +7175,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (!season) {
         return res.status(404).json({ message: "Temporada não encontrada" });
+      }
+
+      if (!req.user!.isMember && !req.user!.isAdmin && (season as any).accessLevel !== "all") {
+        return res.status(403).json({ message: "Acesso restrito a membros" });
       }
       
       const lessonsCompleted = userProgress?.lessonsCompleted || 0;

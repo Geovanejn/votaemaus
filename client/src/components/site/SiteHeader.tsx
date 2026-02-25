@@ -84,7 +84,7 @@ export function SiteHeader() {
               
               <Link href="/membro" className="hidden sm:block">
                 <Button variant="default" size="sm" data-testid="button-member-area">
-                  Área do Membro
+                  Acessar
                 </Button>
               </Link>
 
@@ -164,7 +164,7 @@ export function SiteHeader() {
                   <div className="mt-8 pt-6 border-t flex flex-col gap-4">
                     <Link href="/membro" onClick={() => setIsMenuOpen(false)}>
                       <Button className="w-full" data-testid="mobile-button-member-area">
-                        Área do Membro
+                        Acessar
                       </Button>
                     </Link>
                     <NotificationToggle />

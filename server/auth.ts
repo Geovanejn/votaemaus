@@ -25,7 +25,8 @@ export function generateToken(user: Omit<User, "password">): string {
       isAdmin: user.isAdmin,
       isMember: user.isMember,
       isTreasurer: user.isTreasurer,
-      secretaria: user.secretaria
+      secretaria: user.secretaria,
+      authProvider: user.authProvider || "local",
     },
     JWT_SECRET,
     { expiresIn: "96h" }

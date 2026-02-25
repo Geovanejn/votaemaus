@@ -105,6 +105,7 @@ const LojaAdmin = lazy(() => import("@/pages/admin/marketing/LojaAdmin"));
 const PedidosAdmin = lazy(() => import("@/pages/admin/marketing/PedidosAdmin"));
 const PedidoCompartilhado = lazy(() => import("@/pages/loja/pedido-compartilhado"));
 const TesourariaRelatorios = lazy(() => import("@/pages/admin/tesouraria/TesourariaRelatorios"));
+const AdminUsuarios = lazy(() => import("@/pages/admin/AdminUsuarios"));
 
 function PageLoader() {
   return (
@@ -188,6 +189,7 @@ function Router() {
         <Switch>
           <Route path="/verificar/:hash" component={VerifyPage} />
           <Route path="/admin" component={AdminDashboard} />
+          <Route path="/admin/usuarios" component={AdminUsuarios} />
           <Route path="/admin/emaus-vota" component={AdminEmausVota} />
           <Route path="/admin/study" component={DeoGloryDashboard} />
           <Route path="/admin/study/licoes" component={DeoGloryLicoes} />

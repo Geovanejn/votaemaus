@@ -16,6 +16,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
 import {
   Plus,
   Upload,
@@ -29,6 +30,7 @@ import {
   Trash2,
   MoreVertical,
   Settings,
+  Globe,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -53,6 +55,7 @@ export default function DeoGloryEstudos() {
   const [selectedSeason, setSelectedSeason] = useState<Season | null>(null);
   const [highlightedSeasonId, setHighlightedSeasonId] = useState<number | null>(null);
   const [newSeasonTitle, setNewSeasonTitle] = useState("");
+  const [newSeasonAccessLevel, setNewSeasonAccessLevel] = useState<"members" | "all">("members");
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [pdfFile, setPdfFile] = useState<File | null>(null);
@@ -88,7 +91,7 @@ export default function DeoGloryEstudos() {
   }, [searchString, seasons, navigate, hasHandledQueryParam]);
 
   const createSeasonMutation = useMutation({
-    mutationFn: async (data: { title: string; coverImageUrl?: string }) => {
+    mutationFn: async (data: { title: string; coverImageUrl?: string; accessLevel?: "members" | "all" }) => {
       return apiRequest("POST", "/api/study/admin/seasons", data);
     },
     onSuccess: () => {
@@ -117,6 +120,7 @@ export default function DeoGloryEstudos() {
   const resetCreateModal = () => {
     setShowCreateModal(false);
     setNewSeasonTitle("");
+    setNewSeasonAccessLevel("members");
     setCoverPreview(null);
     setCoverFile(null);
   };
@@ -203,6 +207,7 @@ export default function DeoGloryEstudos() {
       await createSeasonMutation.mutateAsync({
         title: newSeasonTitle.trim(),
         coverImageUrl,
+        accessLevel: newSeasonAccessLevel,
       });
     } finally {
       setIsUploading(false);
@@ -326,9 +331,14 @@ export default function DeoGloryEstudos() {
                 </div>
                 <CardContent className="p-2 sm:p-3">
                   <div className="flex items-center justify-between gap-1 mb-1">
-                    <Badge size="sm" className={`${statusColors[season.status]?.bg} ${statusColors[season.status]?.text} border-0 text-xs`}>
-                      {statusColors[season.status]?.label || season.status}
-                    </Badge>
+                    <div className="flex items-center gap-1 flex-wrap">
+                      <Badge size="sm" className={`${statusColors[season.status]?.bg} ${statusColors[season.status]?.text} border-0 text-xs`}>
+                        {statusColors[season.status]?.label || season.status}
+                      </Badge>
+                      {season.accessLevel === "all" && (
+                        <Globe className="h-3 w-3 text-blue-500" data-testid={`icon-globe-${season.id}`} />
+                      )}
+                    </div>
                     <span className="text-[10px] text-muted-foreground">
                       {season.totalLessons} {season.totalLessons === 1 ? "lição" : "lições"}
                     </span>
@@ -450,6 +460,18 @@ export default function DeoGloryEstudos() {
                   </div>
                 </Button>
               )}
+            </div>
+            <div className="flex items-center justify-between gap-2 rounded-lg border p-3">
+              <div className="space-y-0.5">
+                <Label htmlFor="access-level-toggle" className="text-sm font-medium">Disponível para todos</Label>
+                <p className="text-xs text-muted-foreground">Quando ativado, usuários Google também podem acessar esta revista</p>
+              </div>
+              <Switch
+                id="access-level-toggle"
+                checked={newSeasonAccessLevel === "all"}
+                onCheckedChange={(checked) => setNewSeasonAccessLevel(checked ? "all" : "members")}
+                data-testid="switch-access-level"
+              />
             </div>
           </div>
           <DialogFooter>

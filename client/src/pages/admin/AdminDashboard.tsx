@@ -16,6 +16,7 @@ import {
   Store,
   Home,
   ClipboardList,
+  Users,
 } from "lucide-react";
 
 const StaggerContainer = ({ children, className }: { children: React.ReactNode; className?: string }) => (
@@ -47,6 +48,23 @@ const StaggerItem = ({ children }: { children: React.ReactNode }) => (
 );
 
 const adminPanels = [
+  // === USERS GROUP (Gray) ===
+  {
+    id: "usuarios",
+    title: "Usuários",
+    subtitle: "Gestão de Usuários",
+    description: "Gerencie membros cadastrados e visualize usuários que acessam via Google.",
+    icon: Users,
+    color: "from-gray-500 to-slate-600",
+    buttonColor: "bg-gray-600 hover:bg-gray-700",
+    href: "/admin/usuarios",
+    features: [
+      "Cadastrar e editar membros",
+      "Visualizar usuários Google",
+      "Gerenciar permissões",
+    ],
+    forAdmin: true,
+  },
   // === ELECTIONS GROUP (Green) ===
   {
     id: "emaus-vota",

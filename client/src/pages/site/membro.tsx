@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Link, useLocation } from "wouter";
 import { useForm } from "react-hook-form";
@@ -115,6 +115,20 @@ const systems = [
   },
 ];
 
+declare global {
+  interface Window {
+    google?: {
+      accounts: {
+        id: {
+          initialize: (config: { client_id: string; callback: (response: { credential: string }) => void; auto_select?: boolean }) => void;
+          renderButton: (element: HTMLElement, config: { theme?: string; size?: string; width?: number; text?: string; shape?: string; logo_alignment?: string }) => void;
+          prompt: () => void;
+        };
+      };
+    };
+  }
+}
+
 function LoginForm() {
   const [step, setStep] = useState<"email" | "code" | "password">("password");
   const [email, setEmail] = useState("");
@@ -123,9 +137,77 @@ function LoginForm() {
   const [showSetPasswordDialog, setShowSetPasswordDialog] = useState(false);
   const [pendingUser, setPendingUser] = useState<AuthResponse | null>(null);
   const [shouldRedirect, setShouldRedirect] = useState(false);
+  const [googleClientId, setGoogleClientId] = useState<string | null>(null);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const googleButtonRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const { login, isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
+
+  useEffect(() => {
+    fetch("/api/auth/google-client-id")
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (data?.clientId) setGoogleClientId(data.clientId);
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleGoogleResponse = useCallback(async (response: { credential: string }) => {
+    setIsGoogleLoading(true);
+    try {
+      const anonymousSubscriptionId = localStorage.getItem('anonymous_push_subscription_id');
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (anonymousSubscriptionId) {
+        headers['x-anonymous-subscription-id'] = anonymousSubscriptionId;
+      }
+
+      const res = await fetch("/api/auth/google", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ credential: response.credential }),
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Erro ao fazer login com Google");
+      }
+
+      const result: AuthResponse = await res.json();
+      login(result.user, result.token);
+      toast({
+        title: "Login realizado com sucesso!",
+        description: `Bem-vindo, ${result.user.fullName}`,
+      });
+      setShouldRedirect(true);
+    } catch (error) {
+      toast({
+        title: "Erro ao fazer login com Google",
+        description: error instanceof Error ? error.message : "Tente novamente",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGoogleLoading(false);
+    }
+  }, [login, toast]);
+
+  useEffect(() => {
+    if (!googleClientId || !googleButtonRef.current || !window.google) return;
+
+    window.google.accounts.id.initialize({
+      client_id: googleClientId,
+      callback: handleGoogleResponse,
+    });
+
+    window.google.accounts.id.renderButton(googleButtonRef.current, {
+      theme: "outline",
+      size: "large",
+      width: 400,
+      text: "signin_with",
+      shape: "rectangular",
+      logo_alignment: "left",
+    });
+  }, [googleClientId, handleGoogleResponse]);
 
   // Effect to handle redirect after authentication state is confirmed
   useEffect(() => {
@@ -566,6 +648,31 @@ function LoginForm() {
         </CardContent>
       </Card>
 
+      {googleClientId && (
+        <>
+          <div className="relative my-6 max-w-md mx-auto">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-border" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-background px-2 text-muted-foreground">ou</span>
+            </div>
+          </div>
+          <div className="flex justify-center max-w-md mx-auto">
+            <div 
+              ref={googleButtonRef} 
+              data-testid="google-signin-button"
+              className="w-full flex justify-center"
+            />
+          </div>
+          {isGoogleLoading && (
+            <div className="flex justify-center mt-4">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+            </div>
+          )}
+        </>
+      )}
+
       <div className="mt-6 text-center">
         <p className="text-sm text-muted-foreground">
           Código válido por 15 minutos
@@ -680,10 +787,14 @@ function SystemsSelection() {
     panel => user?.isAdmin || user?.secretaria === panel.secretaria
   );
 
+  const visibleSystems = user?.isMember
+    ? systems
+    : systems.filter(s => s.id === "deoglory" || s.id === "loja");
+
   return (
     <>
       <StaggerContainer className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-        {systems.map((system) => (
+        {visibleSystems.map((system) => (
           <StaggerItem key={system.id}>
             <motion.div
               whileHover={{ y: -8 }}

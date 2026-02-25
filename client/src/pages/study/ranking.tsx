@@ -390,10 +390,10 @@ function EmptyState() {
 }
 
 export default function RankingPage() {
-  const [period, setPeriod] = useState("geral");
+  const [period, setPeriod] = useState("global");
   const [selectedSeasonId, setSelectedSeasonId] = useState<string>("");
   const [selectedYear, setSelectedYear] = useState<string>(new Date().getFullYear().toString());
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, isMember } = useAuth();
   const [, navigate] = useLocation();
   
   // Generate available years (from 2024 to current year)
@@ -429,6 +429,21 @@ export default function RankingPage() {
     enabled: isAuthenticated,
   });
 
+  const { data: globalData, isLoading: globalLoading } = useQuery<LeaderboardResponse>({
+    queryKey: ["/api/study/leaderboard", { period: "global" }],
+    queryFn: async () => {
+      const token = localStorage.getItem("token");
+      const res = await fetch("/api/study/leaderboard?period=global", {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!res.ok) throw new Error("Erro ao carregar ranking");
+      return res.json();
+    },
+    enabled: isAuthenticated && period === "global",
+    refetchInterval: 5000,
+    refetchOnWindowFocus: true,
+  });
+
   const { data: geralData, isLoading: geralLoading } = useQuery<LeaderboardResponse>({
     queryKey: ["/api/study/leaderboard", { period: "weekly" }],
     queryFn: async () => {
@@ -439,7 +454,7 @@ export default function RankingPage() {
       if (!res.ok) throw new Error("Erro ao carregar ranking");
       return res.json();
     },
-    enabled: isAuthenticated,
+    enabled: isAuthenticated && period === "geral",
     refetchInterval: 5000,
     refetchOnWindowFocus: true,
   });
@@ -478,12 +493,14 @@ export default function RankingPage() {
   });
 
   const isLoading = isAuthenticated && (
+    period === "global" ? globalLoading :
     period === "geral" ? geralLoading : 
     period === "anual" ? anualLoading : 
     revistaLoading
   );
   
-  const currentData = period === "geral" ? geralData : 
+  const currentData = period === "global" ? globalData :
+                      period === "geral" ? geralData : 
                       period === "anual" ? anualData : 
                       revistaData;
   const entries = currentData?.entries || [];
@@ -516,14 +533,23 @@ export default function RankingPage() {
 
       <div className="px-4 mb-4 space-y-3">
         <Tabs value={period} onValueChange={setPeriod} className="w-full">
-          <TabsList className="grid w-full grid-cols-3 h-10 bg-muted/30 p-1 rounded-lg">
+          <TabsList className={cn("grid w-full h-10 bg-muted/30 p-1 rounded-lg", isMember ? "grid-cols-4" : "grid-cols-3")}>
             <TabsTrigger
-              value="geral"
+              value="global"
               className="font-medium text-sm rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm"
-              data-testid="tab-geral"
+              data-testid="tab-global"
             >
-              Geral
+              Global
             </TabsTrigger>
+            {isMember && (
+              <TabsTrigger
+                value="geral"
+                className="font-medium text-sm rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm"
+                data-testid="tab-geral"
+              >
+                UMP
+              </TabsTrigger>
+            )}
             <TabsTrigger
               value="anual"
               className="font-medium text-sm rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm"

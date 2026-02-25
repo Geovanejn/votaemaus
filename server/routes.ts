@@ -12984,7 +12984,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const item = await storage.getShopItemById(id);
-      if (!item || !item.isAvailable || !item.isPublished) {
+      if (!item || !item.isPublished) {
         return res.status(404).json({ message: "Item não encontrado" });
       }
       

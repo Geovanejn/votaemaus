@@ -136,6 +136,18 @@ async function runPendingMigrations(): Promise<void> {
       name: "fix_cart_kit_selections_drop_component_name_not_null",
       sql: `ALTER TABLE shop_cart_item_kit_selections ALTER COLUMN component_name DROP NOT NULL;`
     },
+    {
+      name: "add_auth_provider_to_users",
+      sql: `ALTER TABLE users ADD COLUMN IF NOT EXISTS auth_provider TEXT NOT NULL DEFAULT 'local';`
+    },
+    {
+      name: "add_google_id_to_users",
+      sql: `ALTER TABLE users ADD COLUMN IF NOT EXISTS google_id TEXT UNIQUE;`
+    },
+    {
+      name: "add_access_level_to_seasons",
+      sql: `ALTER TABLE seasons ADD COLUMN IF NOT EXISTS access_level TEXT NOT NULL DEFAULT 'members';`
+    },
   ];
 
   for (const migration of migrations) {

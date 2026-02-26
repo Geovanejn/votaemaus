@@ -841,6 +841,40 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteMember(id: number): Promise<void> {
+    const tablesWithUserId = [
+      "user_online_status", "push_subscriptions", "notifications",
+      "study_profiles", "crystal_transactions", "streak_freeze_history", "user_streak_milestones",
+      "user_final_challenge_progress", "user_season_progress", "season_rankings",
+      "weekly_goal_progress", "weekly_practice_bonus", "achievement_xp", "daily_mission_xp",
+      "devotional_readings", "user_lesson_progress", "user_unit_progress", "verse_readings",
+      "xp_transactions", "daily_activity", "user_achievements", "leaderboard_entries",
+      "user_daily_missions", "daily_verse_shares", "weekly_practice", "practice_questions",
+      "shop_cart_items", "shop_orders", "order_push_subscriptions",
+      "achievement_likes", "user_event_progress", "study_event_participants", "user_cards",
+      "member_ump_payments", "member_percapta_payments",
+      "candidates",
+    ];
+    const tablesWithMemberId = [
+      "election_attendance", "birthday_share_images",
+    ];
+    const tablesWithVoterId = ["votes"];
+
+    for (const table of tablesWithUserId) {
+      await sql`DELETE FROM ${sql.identifier(table)} WHERE user_id = ${id}`.execute(db);
+    }
+    for (const table of tablesWithMemberId) {
+      await sql`DELETE FROM ${sql.identifier(table)} WHERE member_id = ${id}`.execute(db);
+    }
+    for (const table of tablesWithVoterId) {
+      await sql`DELETE FROM ${sql.identifier(table)} WHERE voter_id = ${id}`.execute(db);
+    }
+    await sql`UPDATE devotionals SET created_by = NULL WHERE created_by = ${id}`.execute(db);
+    await sql`UPDATE site_events SET created_by = NULL WHERE created_by = ${id}`.execute(db);
+    await sql`UPDATE prayer_requests SET prayed_by = NULL WHERE prayed_by = ${id}`.execute(db);
+    await sql`UPDATE prayer_requests SET moderated_by = NULL WHERE moderated_by = ${id}`.execute(db);
+    await sql`UPDATE prayer_requests SET approved_by = NULL WHERE approved_by = ${id}`.execute(db);
+    await sql`UPDATE devotional_comments SET user_id = NULL WHERE user_id = ${id}`.execute(db);
+    await sql`UPDATE board_members SET user_id = NULL WHERE user_id = ${id}`.execute(db);
     await db.delete(schema.users).where(eq(schema.users.id, id));
   }
 

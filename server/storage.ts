@@ -841,41 +841,47 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteMember(id: number): Promise<void> {
-    const tablesWithUserId = [
-      "user_online_status", "push_subscriptions", "notifications",
-      "study_profiles", "crystal_transactions", "streak_freeze_history", "user_streak_milestones",
-      "user_final_challenge_progress", "user_season_progress", "season_rankings",
-      "weekly_goal_progress", "weekly_practice_bonus", "achievement_xp", "daily_mission_xp",
-      "devotional_readings", "user_lesson_progress", "user_unit_progress", "verse_readings",
-      "xp_transactions", "daily_activity", "user_achievements", "leaderboard_entries",
-      "user_daily_missions", "daily_verse_shares", "weekly_practice", "practice_questions",
-      "shop_cart_items", "shop_orders", "order_push_subscriptions",
-      "achievement_likes", "user_event_progress", "study_event_participants", "user_cards",
-      "member_ump_payments", "member_percapta_payments",
-      "candidates",
-    ];
-    const tablesWithMemberId = [
-      "election_attendance", "birthday_share_images",
-    ];
-    const tablesWithVoterId = ["votes"];
+    const safeId = Number(id);
+    if (isNaN(safeId)) throw new Error("ID inválido");
 
-    for (const table of tablesWithUserId) {
-      await db.execute(sql.raw(`DELETE FROM "${table}" WHERE user_id = ${Number(id)}`));
+    const fkResult = await db.execute(sql.raw(`
+      SELECT
+        tc.table_name,
+        kcu.column_name,
+        c.is_nullable
+      FROM information_schema.table_constraints tc
+      JOIN information_schema.key_column_usage kcu
+        ON tc.constraint_name = kcu.constraint_name
+        AND tc.table_schema = kcu.table_schema
+      JOIN information_schema.constraint_column_usage ccu
+        ON tc.constraint_name = ccu.constraint_name
+        AND tc.table_schema = ccu.table_schema
+      JOIN information_schema.columns c
+        ON c.table_name = kcu.table_name
+        AND c.column_name = kcu.column_name
+        AND c.table_schema = kcu.table_schema
+      WHERE tc.constraint_type = 'FOREIGN KEY'
+        AND ccu.table_name = 'users'
+        AND ccu.column_name = 'id'
+        AND tc.table_schema = 'public'
+      ORDER BY tc.table_name
+    `));
+
+    const refs = (fkResult as any).rows || fkResult;
+
+    for (const ref of refs) {
+      const tableName = ref.table_name;
+      const columnName = ref.column_name;
+      const isNullable = ref.is_nullable === 'YES';
+
+      if (isNullable) {
+        await db.execute(sql.raw(`UPDATE "${tableName}" SET "${columnName}" = NULL WHERE "${columnName}" = ${safeId}`));
+      } else {
+        await db.execute(sql.raw(`DELETE FROM "${tableName}" WHERE "${columnName}" = ${safeId}`));
+      }
     }
-    for (const table of tablesWithMemberId) {
-      await db.execute(sql.raw(`DELETE FROM "${table}" WHERE member_id = ${Number(id)}`));
-    }
-    for (const table of tablesWithVoterId) {
-      await db.execute(sql.raw(`DELETE FROM "${table}" WHERE voter_id = ${Number(id)}`));
-    }
-    await db.execute(sql.raw(`UPDATE devotionals SET created_by = NULL WHERE created_by = ${Number(id)}`));
-    await db.execute(sql.raw(`UPDATE site_events SET created_by = NULL WHERE created_by = ${Number(id)}`));
-    await db.execute(sql.raw(`UPDATE prayer_requests SET prayed_by = NULL WHERE prayed_by = ${Number(id)}`));
-    await db.execute(sql.raw(`UPDATE prayer_requests SET moderated_by = NULL WHERE moderated_by = ${Number(id)}`));
-    await db.execute(sql.raw(`UPDATE prayer_requests SET approved_by = NULL WHERE approved_by = ${Number(id)}`));
-    await db.execute(sql.raw(`UPDATE devotional_comments SET user_id = NULL WHERE user_id = ${Number(id)}`));
-    await db.execute(sql.raw(`UPDATE board_members SET user_id = NULL WHERE user_id = ${Number(id)}`));
-    await db.delete(schema.users).where(eq(schema.users.id, id));
+
+    await db.delete(schema.users).where(eq(schema.users.id, safeId));
   }
 
   async getAllPositions(): Promise<Position[]> {

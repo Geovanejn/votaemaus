@@ -1,6 +1,4 @@
 import { storage } from "./storage";
-import https from "node:https";
-import dns from "node:dns/promises";
 
 const INSTAGRAM_ACCESS_TOKEN = process.env.INSTAGRAM_ACCESS_TOKEN || "";
 const INSTAGRAM_USER_ID = process.env.INSTAGRAM_USER_ID || process.env.INSTAGRAM_ACCOUNT_ID || "";
@@ -10,116 +8,25 @@ const INSTAGRAM_APP_SECRET = process.env.INSTAGRAM_APP_SECRET || "";
 const INSTAGRAM_PROXY_URL = process.env.INSTAGRAM_PROXY_URL || "";
 const GRAPH_API_BASE = INSTAGRAM_PROXY_URL || "https://graph.facebook.com";
 
-const CLOUDFLARE_ANYCAST_IPS = ["104.21.23.155", "172.67.182.31", "104.21.64.1"];
-
-// ==================== HELPER: RETRY & BYPASS LOGIC ====================
-
-function prepareBodyData(body: RequestInit["body"]): string | Buffer | undefined {
-  if (!body) return undefined;
-  if (body instanceof URLSearchParams) return body.toString();
-  if (typeof body === 'string') return body;
-  return String(body);
-}
-
-function httpsRequestAsResponse(urlObj: URL, options: RequestInit, ip: string): Promise<Response> {
-  return new Promise<Response>((resolve, reject) => {
-    const bodyData = prepareBodyData(options.body);
-
-    const reqOptions = {
-      hostname: ip,
-      port: 443,
-      path: urlObj.pathname + urlObj.search,
-      method: options.method || 'GET',
-      headers: {
-        ...(options.headers as any),
-        'Host': urlObj.hostname,
-        'Accept': 'application/json',
-        'Content-Type': 'application/x-www-form-urlencoded',
-        ...(bodyData ? { 'Content-Length': Buffer.byteLength(bodyData) } : {})
-      },
-      servername: urlObj.hostname,
-      rejectUnauthorized: true,
-      timeout: 15000
-    };
-
-    const req = https.request(reqOptions, (res) => {
-      const chunks: any[] = [];
-      res.on('data', d => chunks.push(d));
-      res.on('end', () => {
-        const body = Buffer.concat(chunks).toString();
-        resolve({
-          ok: (res.statusCode || 0) >= 200 && (res.statusCode || 0) < 300,
-          status: res.statusCode || 500,
-          statusText: res.statusMessage || "",
-          json: async () => JSON.parse(body || "{}"),
-          text: async () => body,
-          headers: new Headers(res.headers as any)
-        } as unknown as Response);
-      });
-    });
-
-    req.on('timeout', () => {
-      req.destroy();
-      reject(new Error('Timeout na requisição (15s)'));
-    });
-
-    req.on('error', (e) => {
-      reject(e);
-    });
-
-    if (bodyData) req.write(bodyData);
-    req.end();
-  });
-}
-
-async function resolveIPWithFallback(hostname: string): Promise<string[]> {
-  try {
-    const addresses = await dns.resolve4(hostname);
-    if (addresses.length > 0) return addresses;
-  } catch (e: any) {
-    console.log(`⚠️ [DNS] dns.resolve4 falhou para ${hostname}: ${e.message}`);
-  }
-
-  if (INSTAGRAM_PROXY_URL && hostname.includes('.workers.dev')) {
-    console.log(`🔧 [DNS] Usando IPs Anycast Cloudflare como fallback`);
-    return CLOUDFLARE_ANYCAST_IPS;
-  }
-
-  throw new Error(`Não foi possível resolver DNS para ${hostname}`);
-}
+// ==================== HELPER: RETRY LOGIC ====================
 
 async function fetchWithRetry(url: string, options: RequestInit = {}, retries: number = 3): Promise<Response> {
-  try {
-    return await fetch(url, options);
-  } catch (fetchError: any) {
-    const errorCode = fetchError.cause?.code;
-    const isNetworkError = errorCode === 'ENOTFOUND' || errorCode === 'EAI_AGAIN' || errorCode === 'ECONNRESET' || fetchError.message?.includes('fetch failed');
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await fetch(url, options);
+    } catch (error: any) {
+      const errorCode = error.cause?.code;
+      console.error(`⚠️ [Instagram API] Tentativa ${i + 1}/${retries} falhou (${errorCode || error.message})`);
 
-    if (!isNetworkError) {
-      console.error(`❌ [Instagram API] Erro não-rede:`, fetchError.message);
-      throw fetchError;
-    }
-
-    console.log(`⚠️ [Instagram API] DNS bloqueado (${errorCode}). Usando bypass via IP direto...`);
-
-    const urlObj = new URL(url);
-    const ips = await resolveIPWithFallback(urlObj.hostname);
-
-    for (let i = 0; i < Math.min(retries, ips.length); i++) {
-      const ip = ips[i];
-      try {
-        console.log(`🔧 [Bypass] Tentativa ${i + 1}/${retries} via IP ${ip} (Host: ${urlObj.hostname}, SNI: ${urlObj.hostname})`);
-        return await httpsRequestAsResponse(urlObj, options, ip);
-      } catch (bypassError: any) {
-        console.error(`⚠️ [Bypass] IP ${ip} falhou: ${bypassError.message}`);
-        if (i < retries - 1) {
-          await new Promise(resolve => setTimeout(resolve, 2000));
-        }
+      if (i === retries - 1) {
+        console.error(`❌ [Instagram API] Falha definitiva após ${retries} tentativas:`, error.message);
+        throw error;
       }
-    }
 
-    throw new Error(`Todas as ${retries} tentativas de bypass falharam para ${urlObj.hostname}`);
+      await new Promise(resolve => setTimeout(resolve, 2000 * (i + 1)));
+    }
   }
+  throw new Error('Unreachable');
 }
 
 // ==================== INTERFACES & FUNÇÕES DO SISTEMA ====================

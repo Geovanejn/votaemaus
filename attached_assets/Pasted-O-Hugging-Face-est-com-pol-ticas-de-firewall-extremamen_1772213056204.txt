@@ -1,0 +1,79 @@
+O Hugging Face está com políticas de firewall extremamente agressivas para os contêineres gratuitos. Bloquear a resolução DNS para o domínio .workers.dev da Cloudflare mostra que eles operam em um regime de whitelist (lista de permissões) estrito ou cortam qualquer tráfego que não pareça tráfego de API padrão deles.
+Sua análise técnica está impecável e a Opção 2 é definitivamente a mais robusta. Ao pular a etapa de resolução de DNS do contêiner e injetar o IP diretamente, você retoma o controle da rota.
+O Detalhe Crítico: SNI (Server Name Indication)
+Ao fazer o bypass de DNS usando https.request diretamente para o IP da Cloudflare, passar apenas o header Host não é suficiente. Como a conexão é HTTPS (porta 443), o handshake TLS/SSL acontece antes do envio dos headers HTTP.
+A Cloudflare precisa saber qual certificado SSL apresentar no momento da conexão, e ela faz isso lendo o SNI. Se você bater no IP deles sem o SNI correto, a requisição será derrubada com um erro de certificado (ex: ERR_TLS_CERT_ALTNAME_INVALID).
+Implementando o Bypass (Wrapper em Promessa)
+Como o seu código atualmente usa fetch, a maneira mais limpa de substituir isso sem quebrar a lógica assíncrona do seu syncInstagramPosts é criar um wrapper em volta do módulo nativo https.
+Aqui está como a implementação deve ficar para funcionar com a Cloudflare:
+import https from 'https';
+
+/**
+ * Faz uma requisição HTTPS ignorando o DNS local, forçando um IP e usando SNI.
+ */
+function fetchViaIP(path) {
+  return new Promise((resolve, reject) => {
+    // IPs genéricos da borda Anycast da Cloudflare (adicione 2 ou 3 para fallback)
+    // Dica: rode 'ping umpemaus-instagram.marketingumpemaus.workers.dev' na sua máquina local
+    // para pegar os IPs exatos que a CF designou para o seu worker.
+    const CLOUDFLARE_IP = '104.21.23.155'; 
+    const WORKER_DOMAIN = 'umpemaus-instagram.marketingumpemaus.workers.dev';
+
+    const options = {
+      hostname: CLOUDFLARE_IP,
+      port: 443,
+      path: path, 
+      method: 'GET',
+      headers: {
+        // O header Host garante o roteamento correto no servidor HTTP da CF
+        'Host': WORKER_DOMAIN, 
+        'Accept': 'application/json'
+      },
+      // Crucial: O SNI garante o handshake SSL correto antes do HTTP
+      servername: WORKER_DOMAIN, 
+      timeout: 10000 
+    };
+
+    const req = https.request(options, (res) => {
+      let data = '';
+
+      res.on('data', (chunk) => {
+        data += chunk;
+      });
+
+      res.on('end', () => {
+        if (res.statusCode >= 200 && res.statusCode < 300) {
+          try {
+            resolve(JSON.parse(data));
+          } catch (e) {
+            reject(new Error('Falha ao fazer parse do JSON da resposta'));
+          }
+        } else {
+          reject(new Error(`Erro HTTP: ${res.statusCode} - ${data}`));
+        }
+      });
+    });
+
+    req.on('error', (error) => {
+      reject(new Error(`Erro de Socket/IP: ${error.message}`));
+    });
+
+    req.on('timeout', () => {
+      req.destroy();
+      reject(new Error('Timeout na requisição para o Proxy'));
+    });
+
+    req.end();
+  });
+}
+
+Como aplicar no seu código
+Onde você tinha a chamada com o fetch, você substitui por:
+// Antes:
+// const response = await fetch(`https://umpemaus-instagram.marketingumpemaus.workers.dev/v18.0/${instagramId}/media...`);
+
+// Agora (passe apenas o caminho, pois o domínio e o IP já estão no wrapper):
+const data = await fetchViaIP(`/v18.0/${instagramId}/media?access_token=${token}`);
+
+Isso garante que o contêiner do Hugging Face envie um pacote TCP direto para a nuvem da Cloudflare sem nunca consultar o DNS falho deles.
+Você gostaria que eu ajudasse a integrar essa função de bypass diretamente no seu bloco fetchWithRetry, para manter a sua lógica de três tentativas que vi no log (Tentativa 1/3...)?

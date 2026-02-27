@@ -1,0 +1,198 @@
+Spaces
+Hugging Face's logo
+Umpemaus
+/
+umpemaus 
+
+like
+0
+
+
+Logs
+
+build
+container
+
+Logs Endpoint
+
+
+
+===== Application Startup at 2026-02-27 19:38:57 =====
+
+
+> rest-express@1.0.0 start
+> NODE_ENV=production node dist/index.js
+
+✓ Logo configured with public URL: https://umpemaus.com.br/logo-email.png
+[MercadoPago] Webhook URL configured: https://umpemaus.com.br/api/pix/webhook
+[MercadoPago] Client initialized successfully
+[Push] Web Push configured successfully
+🔧 [System] DNS Configurado: IPv4 First + Google DNS (8.8.8.8)
+[R2] Configured - Bucket: umpemaus, Public URL: https://pub-73bb54c6aac24e7a926425a7c58e7c2d.r2.dev
+[WebSocket] Server initialized
+7:39:32 PM [express] serving on port 7860
+Initializing PostgreSQL database connection...
+PostgreSQL connection successful: 2026-02-27T19:39:32.409Z
+[Migration] Schema migrations checked successfully
+Admin marketingumpemaus@gmail.com ja existe e esta configurado.
+Database initialized successfully!
+[Backfill] Nenhum pedido pago precisou de correção na tesouraria.
+[Backfill] Nenhuma parcela paga precisou de correção na tesouraria.
+[Backfill] Todos os pedidos manuais já possuem shareToken.
+[Migration] Starting image migration to R2...
+[Birthday Scheduler] Initialized - will run daily at 07:00 AM (America/Sao_Paulo)
+[DeoGlory Scheduler] Streak check initialized - will run daily at 19:00 (America/Sao_Paulo)
+[DeoGlory Scheduler] Inactivity check initialized - will run daily at 15:30 (America/Sao_Paulo)
+[Daily Verse Scheduler] Initialized - will run daily at 07:00 (America/Sao_Paulo)
+[Daily Verse Scheduler] Banner cleanup initialized - will remove from banner at 23:59 (America/Sao_Paulo)
+[Recovery Verses Scheduler] Initialized - will run daily at 15:30 (America/Sao_Paulo)
+[Instagram Scheduler] Initialized - will sync every 6 hours (America/Sao_Paulo)
+[Instagram Scheduler] Running sync...
+[Instagram] Starting sync...
+[Daily Missions Scheduler] Initialized - will run daily at 00:00 (America/Sao_Paulo)
+[Weekly Goal Scheduler] Initialized - will run every Saturday at 23:59 (America/Sao_Paulo)
+[Event Scheduler] Lesson release initialized - will run daily at 00:00 (America/Sao_Paulo)
+[Event Scheduler] Card distribution initialized - will run daily at 23:59 (America/Sao_Paulo)
+[Event Deadline Scheduler] Initialized - will run every hour at :00 (America/Sao_Paulo) with database persistence
+[Marketing Reminder Scheduler] Initialized - will run every hour at :30 (America/Sao_Paulo) with database persistence
+[Treasury Scheduler] Day 5 reminder initialized - will run on day 5 of each month at 08:00 (America/Sao_Paulo)
+[Treasury Scheduler] 5th business day reminder initialized - will run on weekdays at 08:00 (America/Sao_Paulo)
+[Shop Scheduler] Abandoned cart reminder initialized - will run every hour (America/Sao_Paulo) with auto-cancel after 48h
+[Treasury Scheduler] Loan installment reminder initialized - will run daily at 08:00 (America/Sao_Paulo)
+[Shop Scheduler] Shop installment reminder initialized - will run daily at 08:00 (America/Sao_Paulo)
+[Shop Scheduler] Overdue installment checker initialized - will run daily at 09:00 (America/Sao_Paulo)
+[Event Fee Scheduler] Event fee reminder initialized - will run daily at 08:00 (America/Sao_Paulo)
+[Treasury Scheduler] Year rollover initialized - will run on Jan 1st at 00:05 (America/Sao_Paulo)
+[Treasury Scheduler] Monthly summary initialized - will run on day 1 of each month at 08:00 (America/Sao_Paulo)
+[Instagram Token Scheduler] Token refresh initialized - will run daily at 07:00 (America/Sao_Paulo)
+[Instagram Stories Scheduler] Verse image generation initialized - will run daily at 07:05 (America/Sao_Paulo)
+[Instagram Stories Scheduler] Reflection image generation initialized - will run daily at 07:08 (America/Sao_Paulo)
+[Instagram Stories Scheduler] Verse story initialized - will run daily at 07:10 (America/Sao_Paulo)
+[Instagram Stories Scheduler] Reflection story initialized - will run daily at 07:15 (America/Sao_Paulo)
+[Instagram Stories Scheduler] Birthday image generation initialized - will run daily at 08:01 (America/Sao_Paulo)
+[Instagram Stories Scheduler] Birthday stories initialized - will run daily at 08:05 (America/Sao_Paulo)
+7:39:32 PM [express] Database and schedulers initialized successfully
+[Migration] Completed in 0.2s
+[Migration] Migrated: 0, Failed: 0, Skipped: 0
+[Instagram] Fetched 12 posts from API
+[Daily Verse Scheduler] Running initial check at startup...
+[Daily Verse Scheduler] Sending daily verse notification...
+[Daily Verse Scheduler] Already sent today (2026-02-27), skipping
+[Instagram] Sync completed: 12 saved, 0 errors
+[Instagram Scheduler] Sync completed: 12 posts synced, 0 errors
+[Recovery Verses Scheduler] Running initial check at startup...
+[Recovery Verses Scheduler] Generating daily recovery verses...
+[BibleAPI] 30 recovery verses fetched successfully from ABíbliaDigital
+[Recovery Verses Scheduler] Skipping duplicate: Isaías 43:2 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Filipenses 4:6 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Salmos 27:1 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Salmos 55:22 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Salmos 121:2 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Salmos 121:1 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Isaías 43:1 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Salmos 23:1 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Hebreus 13:6 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Tiago 1:3 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Salmos 46:1 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Romanos 8:39 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Salmos 91:2 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Apocalipse 21:4 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Filipenses 4:13 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Tiago 1:2 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Jeremias 29:11 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Mateus 6:34 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: 2 Coríntios 4:17 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Hebreus 13:5 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Mateus 11:28 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Romanos 8:38 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: 1 Pedro 5:7 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Salmos 91:1 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Filipenses 4:7 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Isaías 41:10 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: João 14:27 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Salmos 23:4 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: 2 Coríntios 1:3 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: 2 Coríntios 1:4 (ARA)
+[Recovery Verses Scheduler] Added 0 new recovery verses for recovery-2026-02-27
+[Daily Missions Scheduler] Running initial check at startup...
+[Daily Missions Scheduler] Refreshing daily missions with AI...
+[Daily Missions Scheduler] Content already generated for today (2026-02-27)
+7:43:36 PM [express] GET /api/push/vapid-key 304 in 2ms :: {"publicKey":"BJyzrSxzvZ1RVtMvUD8MtIfZakv…
+7:43:36 PM [express] GET /api/site-content/quem-somos 304 in 62ms :: {"email":{"title":"","content":…
+7:43:36 PM [express] GET /api/site/daily-verse 304 in 36ms :: {"id":55,"verse":"fitando os olhos em …
+7:43:36 PM [express] GET /api/forms/pending 304 in 78ms :: []
+7:43:36 PM [express] GET /api/site/highlights 200 in 103ms :: {"devotional":{"id":6,"title":"Cristo …
+7:43:36 PM [express] GET /api/notifications/unread-count 200 in 119ms :: {"count":1}
+7:43:36 PM [express] GET /api/notifications 200 in 72ms :: {"notifications":[{"id":1865,"userId":1,"…
+7:43:37 PM [express] GET /api/push/vapid-key 304 in 1ms :: {"publicKey":"BJyzrSxzvZ1RVtMvUD8MtIfZakv…
+7:43:37 PM [express] GET /api/push/status 304 in 13ms :: {"hasSubscription":true,"count":1}
+7:43:39 PM [express] GET /api/push/status 304 in 6ms :: {"hasSubscription":true,"count":1}
+7:43:43 PM [express] GET /api/members 304 in 7ms :: [{"id":25,"fullName":"Adinailson Gomes Pereira "…
+7:43:43 PM [express] GET /api/admin/google-users 304 in 6ms :: []
+7:45:50 PM [express] GET /api/treasury/dashboard/category-expenses 200 in 33ms :: []
+7:45:50 PM [express] GET /api/treasury/dashboard/monthly 200 in 55ms :: [{"month":1,"monthName":"jan…
+7:45:50 PM [express] GET /api/treasury/dashboard/category-income 200 in 60ms :: [{"category":"loja",…
+7:45:50 PM [express] GET /api/treasury/dashboard/summary 200 in 71ms :: {"totalIncome":391700,"total…
+7:46:02 PM [express] GET /api/treasury/members/tax-status/2026 200 in 19ms :: [{"userId":25,"fullNam…
+[Push] Successfully sent notification to member user 1
+[Push] Sent "💰 Lembrete de Pagamentos Pendentes" to user 1 (1/1 success)
+[Push] Successfully sent notification to member user 12
+[Push] Sent "💰 Lembrete de Pagamentos Pendentes" to user 12 (1/1 success)
+[Push] User 30 has no push subscriptions registered
+[Push] User 18 has no push subscriptions registered
+[Push] User 31 has no push subscriptions registered
+[Push] User 26 has no push subscriptions registered
+[Push] User 5 has no push subscriptions registered
+[Push] User 15 has no push subscriptions registered
+[Push] User 20 has no push subscriptions registered
+[Push] Successfully sent notification to member user 2
+[Push] Sent "💰 Lembrete de Pagamentos Pendentes" to user 2 (1/1 success)
+[Push] Successfully sent notification to member user 9
+[Push] Sent "💰 Lembrete de Pagamentos Pendentes" to user 9 (1/1 success)
+[Push] Successfully sent notification to member user 6
+[Push] Successfully sent notification to member user 6
+[Push] Sent "💰 Lembrete de Pagamentos Pendentes" to user 6 (2/2 success)
+[Push] User 17 has no push subscriptions registered
+[Push] Successfully sent notification to member user 35
+[Push] Sent "💰 Lembrete de Pagamentos Pendentes" to user 35 (1/1 success)
+[Push] User 3 has no push subscriptions registered
+[Push] User 34 has no push subscriptions registered
+[Push] User 32 has no push subscriptions registered
+[Push] Successfully sent notification to member user 16
+[Push] Sent "💰 Lembrete de Pagamentos Pendentes" to user 16 (1/1 success)
+[Push] User 24 has no push subscriptions registered
+[Push] User 14 has no push subscriptions registered
+[Push] User 27 has no push subscriptions registered
+[Push] User 4 has no push subscriptions registered
+[Push] User 33 has no push subscriptions registered
+[Push] User 29 has no push subscriptions registered
+7:46:26 PM [express] POST /api/treasury/notifications/bulk-reminder 200 in 1124ms :: {"success":true…
+7:46:41 PM [express] GET /api/admin/instagram 200 in 34ms :: {"configured":true,"posts":[{"id":3433,…
+7:46:41 PM [express] GET /api/marketing/stats 304 in 39ms :: {"events":{"total":1,"upcoming":0,"past…
+[Instagram Stories] No saved verse image, generating via Puppeteer...
+[Puppeteer] Generating verse share image...
+[Puppeteer] Launching browser...
+7:46:45 PM [express] GET /api/site-content/quem-somos 200 in 9ms :: {"email":{"title":"","content":"…
+7:46:45 PM [express] GET /api/site/daily-verses 200 in 10ms :: [{"id":55,"verse":"fitando os olhos e…
+7:46:45 PM [express] GET /api/site/daily-verse 200 in 13ms :: {"id":55,"verse":"fitando os olhos em …
+7:46:45 PM [express] GET /api/push/vapid-key 200 in 1ms :: {"publicKey":"BJyzrSxzvZ1RVtMvUD8MtIfZakv…
+7:46:49 PM [express] GET /api/site-content/quem-somos 304 in 8ms :: {"email":{"title":"","content":"…
+7:46:49 PM [express] GET /api/site/daily-verse 304 in 11ms :: {"id":55,"verse":"fitando os olhos em …
+7:46:49 PM [express] GET /api/site/highlights 200 in 38ms :: {"devotional":{"id":6,"title":"Cristo c…
+7:46:50 PM [express] GET /api/push/vapid-key 304 in 1ms :: {"publicKey":"BJyzrSxzvZ1RVtMvUD8MtIfZakv…
+Instagram verse story publish error: TimeoutError: Waiting for selector `[data-testid="dialog-share-verse"]` failed
+    at CSSQueryHandler.waitFor (file:///app/node_modules/puppeteer-core/lib/esm/puppeteer/common/QueryHandler.js:211:46)
+    at async CdpFrame.waitForSelector (file:///app/node_modules/puppeteer-core/lib/esm/puppeteer/api/Frame.js:541:21)
+    ... 2 lines matching cause stack trace ...
+    at async file:///app/dist/index.js:23780:34 {
+  cause: TimeoutError: Waiting failed: 30000ms exceeded
+      at new WaitTask (file:///app/node_modules/puppeteer-core/lib/esm/puppeteer/common/WaitTask.js:46:34)
+      at IsolatedWorld.waitForFunction (file:///app/node_modules/puppeteer-core/lib/esm/puppeteer/api/Realm.js:22:26)
+      at CSSQueryHandler.waitFor (file:///app/node_modules/puppeteer-core/lib/esm/puppeteer/common/QueryHandler.js:176:95)
+      at async CdpFrame.waitForSelector (file:///app/node_modules/puppeteer-core/lib/esm/puppeteer/api/Frame.js:541:21)
+      at async CdpPage.waitForSelector (file:///app/node_modules/puppeteer-core/lib/esm/puppeteer/api/Page.js:1381:20)
+      at async generateVerseShareImage (file:///app/dist/index.js:14982:5)
+      at async file:///app/dist/index.js:23780:34
+}
+7:47:21 PM [express] POST /api/admin/instagram/publish-verse-story 500 in 37225ms :: {"message":"Wai…
+ 

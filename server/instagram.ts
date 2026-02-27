@@ -15,7 +15,6 @@ const GRAPH_API_BASE = INSTAGRAM_PROXY_URL || "https://graph.facebook.com";
 async function fetchWithRetry(url: string, options: RequestInit = {}, retries: number = 3): Promise<Response> {
   for (let i = 0; i < retries; i++) {
     try {
-      // 1. Tenta o fetch padrão
       return await fetch(url, options);
     } catch (error: any) {
       const errorCode = error.cause?.code;
@@ -26,21 +25,22 @@ async function fetchWithRetry(url: string, options: RequestInit = {}, retries: n
         throw error;
       }
 
+      if (INSTAGRAM_PROXY_URL) {
+        console.log(`⚠️ [Instagram API] Falha de conexão via proxy (${errorCode}). Tentativa ${i + 1}/${retries}. Aguardando 2s...`);
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        continue;
+      }
+
       console.log(`⚠️ [Instagram API] Falha de conexão (${errorCode}). Tentando Bypass Manual (Tentativa ${i + 1}/${retries})...`);
 
-      // === BYPASS MANUAL VIA IP ===
       try {
         const urlObj = new URL(url);
-        
-        // Usa o DNS do Node (Google 8.8.8.8) para achar o IP
         const addresses = await dns.resolve4(urlObj.hostname);
         const ip = addresses[0]; 
         
         console.log(`🔧 [Bypass] IP resolvido: ${ip} para ${urlObj.hostname}`);
 
         return await new Promise<Response>((resolve, reject) => {
-          
-          // PREPARAÇÃO DO CORPO (CORREÇÃO DO ERRO URLSearchParams)
           let bodyData: string | Buffer | undefined = undefined;
           
           if (options.body) {
@@ -54,18 +54,17 @@ async function fetchWithRetry(url: string, options: RequestInit = {}, retries: n
           }
 
           const reqOptions = {
-            hostname: ip,           // Conecta direto no IP
+            hostname: ip,
             port: 443,
             path: urlObj.pathname + urlObj.search,
             method: options.method || 'GET',
             headers: {
               ...(options.headers as any),
-              'Host': urlObj.hostname, // O servidor precisa saber qual domínio queremos
+              'Host': urlObj.hostname,
               'Content-Type': 'application/x-www-form-urlencoded',
-              // Importante calcular o tamanho para evitar erros no Facebook
               ...(bodyData ? { 'Content-Length': Buffer.byteLength(bodyData) } : {})
             },
-            servername: urlObj.hostname, // Essencial para o SSL (SNI) funcionar
+            servername: urlObj.hostname,
             rejectUnauthorized: true
           };
 
@@ -74,8 +73,6 @@ async function fetchWithRetry(url: string, options: RequestInit = {}, retries: n
             res.on('data', d => chunks.push(d));
             res.on('end', () => {
               const body = Buffer.concat(chunks).toString();
-              
-              // Simula um objeto Response do fetch
               resolve({
                 ok: (res.statusCode || 0) >= 200 && (res.statusCode || 0) < 300,
                 status: res.statusCode || 500,

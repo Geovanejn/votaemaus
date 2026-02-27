@@ -1,0 +1,141 @@
+Spaces
+Hugging Face's logo
+Umpemaus
+/
+umpemaus 
+
+like
+0
+
+
+Logs
+
+build
+container
+
+Logs Endpoint
+
+
+
+===== Application Startup at 2026-02-27 17:18:55 =====
+
+
+> rest-express@1.0.0 start
+> NODE_ENV=production node dist/index.js
+
+✓ Logo configured with public URL: https://umpemaus.com.br/logo-email.png
+[MercadoPago] Webhook URL configured: https://umpemaus.com.br/api/pix/webhook
+[MercadoPago] Client initialized successfully
+[Push] Web Push configured successfully
+🔧 [System] DNS Configurado: IPv4 First + Google DNS (8.8.8.8)
+[R2] Configured - Bucket: umpemaus, Public URL: https://pub-73bb54c6aac24e7a926425a7c58e7c2d.r2.dev
+[WebSocket] Server initialized
+5:19:24 PM [express] serving on port 7860
+Initializing PostgreSQL database connection...
+PostgreSQL connection successful: 2026-02-27T17:19:24.110Z
+[Migration] Schema migrations checked successfully
+Admin marketingumpemaus@gmail.com ja existe e esta configurado.
+Database initialized successfully!
+[Backfill] Nenhum pedido pago precisou de correção na tesouraria.
+[Backfill] Nenhuma parcela paga precisou de correção na tesouraria.
+[Backfill] Todos os pedidos manuais já possuem shareToken.
+[Migration] Starting image migration to R2...
+[Birthday Scheduler] Initialized - will run daily at 07:00 AM (America/Sao_Paulo)
+[DeoGlory Scheduler] Streak check initialized - will run daily at 19:00 (America/Sao_Paulo)
+[DeoGlory Scheduler] Inactivity check initialized - will run daily at 15:30 (America/Sao_Paulo)
+[Daily Verse Scheduler] Initialized - will run daily at 07:00 (America/Sao_Paulo)
+[Daily Verse Scheduler] Banner cleanup initialized - will remove from banner at 23:59 (America/Sao_Paulo)
+[Recovery Verses Scheduler] Initialized - will run daily at 15:30 (America/Sao_Paulo)
+[Instagram Scheduler] Initialized - will sync every 6 hours (America/Sao_Paulo)
+[Instagram Scheduler] Running sync...
+[Instagram] Starting sync...
+[Daily Missions Scheduler] Initialized - will run daily at 00:00 (America/Sao_Paulo)
+[Weekly Goal Scheduler] Initialized - will run every Saturday at 23:59 (America/Sao_Paulo)
+[Event Scheduler] Lesson release initialized - will run daily at 00:00 (America/Sao_Paulo)
+[Event Scheduler] Card distribution initialized - will run daily at 23:59 (America/Sao_Paulo)
+[Event Deadline Scheduler] Initialized - will run every hour at :00 (America/Sao_Paulo) with database persistence
+[Marketing Reminder Scheduler] Initialized - will run every hour at :30 (America/Sao_Paulo) with database persistence
+[Treasury Scheduler] Day 5 reminder initialized - will run on day 5 of each month at 08:00 (America/Sao_Paulo)
+[Treasury Scheduler] 5th business day reminder initialized - will run on weekdays at 08:00 (America/Sao_Paulo)
+[Shop Scheduler] Abandoned cart reminder initialized - will run every hour (America/Sao_Paulo) with auto-cancel after 48h
+[Treasury Scheduler] Loan installment reminder initialized - will run daily at 08:00 (America/Sao_Paulo)
+[Shop Scheduler] Shop installment reminder initialized - will run daily at 08:00 (America/Sao_Paulo)
+[Shop Scheduler] Overdue installment checker initialized - will run daily at 09:00 (America/Sao_Paulo)
+[Event Fee Scheduler] Event fee reminder initialized - will run daily at 08:00 (America/Sao_Paulo)
+[Treasury Scheduler] Year rollover initialized - will run on Jan 1st at 00:05 (America/Sao_Paulo)
+[Treasury Scheduler] Monthly summary initialized - will run on day 1 of each month at 08:00 (America/Sao_Paulo)
+[Instagram Token Scheduler] Token refresh initialized - will run daily at 07:00 (America/Sao_Paulo)
+[Instagram Stories Scheduler] Verse image generation initialized - will run daily at 07:05 (America/Sao_Paulo)
+[Instagram Stories Scheduler] Reflection image generation initialized - will run daily at 07:08 (America/Sao_Paulo)
+[Instagram Stories Scheduler] Verse story initialized - will run daily at 07:10 (America/Sao_Paulo)
+[Instagram Stories Scheduler] Reflection story initialized - will run daily at 07:15 (America/Sao_Paulo)
+[Instagram Stories Scheduler] Birthday image generation initialized - will run daily at 08:01 (America/Sao_Paulo)
+[Instagram Stories Scheduler] Birthday stories initialized - will run daily at 08:05 (America/Sao_Paulo)
+5:19:24 PM [express] Database and schedulers initialized successfully
+⚠️ [Instagram API] Falha de conexão via proxy (ENOTFOUND). Tentativa 1/3. Aguardando 2s...
+[Migration] Completed in 0.2s
+[Migration] Migrated: 0, Failed: 0, Skipped: 0
+⚠️ [Instagram API] Falha de conexão via proxy (ENOTFOUND). Tentativa 2/3. Aguardando 2s...
+❌ [Instagram API] Falha definitiva: fetch failed
+[Instagram] Error fetching posts: TypeError: fetch failed
+[Instagram] No new posts fetched
+    at node:internal/deps/undici/undici:14902:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async fetchWithRetry (file:///app/dist/index.js:14651:14)
+    at async fetchInstagramPosts (file:///app/dist/index.js:14754:22)
+    at async syncInstagramPosts (file:///app/dist/index.js:14774:19)
+    at async runInstagramSync (file:///app/dist/index.js:16548:20) {
+  [cause]: Error: getaddrinfo ENOTFOUND umpemaus-instagram.marketingumpemaus.workers.dev
+      at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:122:26) {
+    errno: -3007,
+    code: 'ENOTFOUND',
+    syscall: 'getaddrinfo',
+[Instagram Scheduler] Sync completed: 0 posts synced, 0 errors
+    hostname: 'umpemaus-instagram.marketingumpemaus.workers.dev'
+  }
+}
+[Daily Verse Scheduler] Running initial check at startup...
+[Daily Verse Scheduler] Sending daily verse notification...
+[Daily Verse Scheduler] Already sent today (2026-02-27), skipping
+[Recovery Verses Scheduler] Running initial check at startup...
+[Recovery Verses Scheduler] Generating daily recovery verses...
+[Daily Missions Scheduler] Running initial check at startup...
+[Daily Missions Scheduler] Refreshing daily missions with AI...
+[Daily Missions Scheduler] Content already generated for today (2026-02-27)
+[BibleAPI] 30 recovery verses fetched successfully from ABíbliaDigital
+[Recovery Verses Scheduler] Skipping duplicate: Salmos 121:1 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Salmos 27:1 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: 2 Coríntios 1:3 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Salmos 34:18 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Salmos 91:1 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Filipenses 4:6 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: 2 Coríntios 4:17 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Filipenses 4:13 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Tiago 1:3 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Mateus 6:34 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Jeremias 29:11 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Isaías 41:10 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Romanos 8:38 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: João 14:27 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Apocalipse 21:4 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Salmos 55:22 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Romanos 8:39 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Hebreus 13:6 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: 2 Coríntios 4:16 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Mateus 11:28 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: 1 Pedro 5:7 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Hebreus 13:5 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Tiago 1:2 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Isaías 43:1 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Salmos 23:1 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Salmos 23:4 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Salmos 121:2 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Isaías 40:31 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Isaías 43:2 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Salmos 91:2 (ARA)
+[Recovery Verses Scheduler] Added 0 new recovery verses for recovery-2026-02-27
+5:19:35 PM [express] GET /api/site-content/quem-somos 304 in 11ms :: {"email":{"title":"","content":…
+5:19:36 PM [express] GET /api/site/daily-verse 304 in 49ms :: {"id":55,"verse":"fitando os olhos em …
+5:19:36 PM [express] GET /api/site/highlights 304 in 61ms :: {"devotional":{"id":6,"title":"Cristo c…
+5:19:36 PM [express] GET /api/push/vapid-key 304 in 1ms :: {"publicKey":"BJyzrSxzvZ1RVtMvUD8MtIfZakv…
+ 

@@ -12,6 +12,59 @@ const GRAPH_API_BASE = INSTAGRAM_PROXY_URL || "https://graph.facebook.com";
 
 // ==================== HELPER: RETRY & BYPASS LOGIC ====================
 
+function prepareBodyData(body: RequestInit["body"]): string | Buffer | undefined {
+  if (!body) return undefined;
+  if (body instanceof URLSearchParams) return body.toString();
+  if (typeof body === 'string') return body;
+  return String(body);
+}
+
+function httpsRequestAsResponse(urlObj: URL, options: RequestInit, ip?: string): Promise<Response> {
+  return new Promise<Response>((resolve, reject) => {
+    const bodyData = prepareBodyData(options.body);
+    const hostname = ip || urlObj.hostname;
+
+    const reqOptions = {
+      hostname,
+      port: 443,
+      path: urlObj.pathname + urlObj.search,
+      method: options.method || 'GET',
+      headers: {
+        ...(options.headers as any),
+        'Host': urlObj.hostname,
+        'Content-Type': 'application/x-www-form-urlencoded',
+        ...(bodyData ? { 'Content-Length': Buffer.byteLength(bodyData) } : {})
+      },
+      servername: urlObj.hostname,
+      rejectUnauthorized: true
+    };
+
+    const req = https.request(reqOptions, (res) => {
+      const chunks: any[] = [];
+      res.on('data', d => chunks.push(d));
+      res.on('end', () => {
+        const body = Buffer.concat(chunks).toString();
+        resolve({
+          ok: (res.statusCode || 0) >= 200 && (res.statusCode || 0) < 300,
+          status: res.statusCode || 500,
+          statusText: res.statusMessage || "",
+          json: async () => JSON.parse(body || "{}"),
+          text: async () => body,
+          headers: new Headers(res.headers as any)
+        } as unknown as Response);
+      });
+    });
+
+    req.on('error', (e) => {
+      console.error("❌ [Bypass] Erro socket:", e.message);
+      reject(e);
+    });
+
+    if (bodyData) req.write(bodyData);
+    req.end();
+  });
+}
+
 async function fetchWithRetry(url: string, options: RequestInit = {}, retries: number = 3): Promise<Response> {
   for (let i = 0; i < retries; i++) {
     try {
@@ -25,79 +78,18 @@ async function fetchWithRetry(url: string, options: RequestInit = {}, retries: n
         throw error;
       }
 
-      if (INSTAGRAM_PROXY_URL) {
-        console.log(`⚠️ [Instagram API] Falha de conexão via proxy (${errorCode}). Tentativa ${i + 1}/${retries}. Aguardando 2s...`);
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        continue;
-      }
-
-      console.log(`⚠️ [Instagram API] Falha de conexão (${errorCode}). Tentando Bypass Manual (Tentativa ${i + 1}/${retries})...`);
+      console.log(`⚠️ [Instagram API] Falha de conexão (${errorCode}). Tentando Bypass DNS (Tentativa ${i + 1}/${retries})...`);
 
       try {
         const urlObj = new URL(url);
         const addresses = await dns.resolve4(urlObj.hostname);
-        const ip = addresses[0]; 
+        const ip = addresses[0];
         
         console.log(`🔧 [Bypass] IP resolvido: ${ip} para ${urlObj.hostname}`);
-
-        return await new Promise<Response>((resolve, reject) => {
-          let bodyData: string | Buffer | undefined = undefined;
-          
-          if (options.body) {
-            if (options.body instanceof URLSearchParams) {
-              bodyData = options.body.toString();
-            } else if (typeof options.body === 'string') {
-              bodyData = options.body;
-            } else {
-              bodyData = String(options.body);
-            }
-          }
-
-          const reqOptions = {
-            hostname: ip,
-            port: 443,
-            path: urlObj.pathname + urlObj.search,
-            method: options.method || 'GET',
-            headers: {
-              ...(options.headers as any),
-              'Host': urlObj.hostname,
-              'Content-Type': 'application/x-www-form-urlencoded',
-              ...(bodyData ? { 'Content-Length': Buffer.byteLength(bodyData) } : {})
-            },
-            servername: urlObj.hostname,
-            rejectUnauthorized: true
-          };
-
-          const req = https.request(reqOptions, (res) => {
-            const chunks: any[] = [];
-            res.on('data', d => chunks.push(d));
-            res.on('end', () => {
-              const body = Buffer.concat(chunks).toString();
-              resolve({
-                ok: (res.statusCode || 0) >= 200 && (res.statusCode || 0) < 300,
-                status: res.statusCode || 500,
-                statusText: res.statusMessage || "",
-                json: async () => JSON.parse(body || "{}"),
-                text: async () => body,
-                headers: new Headers(res.headers as any)
-              } as unknown as Response);
-            });
-          });
-
-          req.on('error', (e) => {
-            console.error("❌ [Bypass] Erro socket:", e.message);
-            reject(e);
-          });
-          
-          if (bodyData) {
-            req.write(bodyData);
-          }
-          req.end();
-        });
-
+        return await httpsRequestAsResponse(urlObj, options, ip);
       } catch (bypassError: any) {
-        console.error(`⚠️ [Bypass] Falha total: ${bypassError.message}. Aguardando 5s...`);
-        await new Promise(resolve => setTimeout(resolve, 5000));
+        console.error(`⚠️ [Bypass] Falha: ${bypassError.message}. Aguardando 3s...`);
+        await new Promise(resolve => setTimeout(resolve, 3000));
       }
     }
   }

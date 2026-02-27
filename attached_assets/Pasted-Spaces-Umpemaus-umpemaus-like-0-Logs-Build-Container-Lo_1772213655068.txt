@@ -1,0 +1,168 @@
+Spaces
+
+Umpemaus
+/
+umpemaus 
+
+like
+0
+
+
+Logs
+
+Build
+Container
+
+Logs Endpoint
+
+
+
+===== Application Startup at 2026-02-27 17:30:48 =====
+
+
+> rest-express@1.0.0 start
+> NODE_ENV=production node dist/index.js
+
+✓ Logo configured with public URL: https://umpemaus.com.br/logo-email.png
+[MercadoPago] Webhook URL configured: https://umpemaus.com.br/api/pix/webhook
+[MercadoPago] Client initialized successfully
+[Push] Web Push configured successfully
+🔧 [System] DNS Configurado: IPv4 First + Google DNS (8.8.8.8)
+[R2] Configured - Bucket: umpemaus, Public URL: https://pub-73bb54c6aac24e7a926425a7c58e7c2d.r2.dev
+[WebSocket] Server initialized
+5:31:15 PM [express] serving on port 7860
+Initializing PostgreSQL database connection...
+PostgreSQL connection successful: 2026-02-27T17:31:15.569Z
+[Migration] Schema migrations checked successfully
+Admin marketingumpemaus@gmail.com ja existe e esta configurado.
+Database initialized successfully!
+[Backfill] Nenhum pedido pago precisou de correção na tesouraria.
+[Backfill] Nenhuma parcela paga precisou de correção na tesouraria.
+[Backfill] Todos os pedidos manuais já possuem shareToken.
+[Migration] Starting image migration to R2...
+[Birthday Scheduler] Initialized - will run daily at 07:00 AM (America/Sao_Paulo)
+[DeoGlory Scheduler] Streak check initialized - will run daily at 19:00 (America/Sao_Paulo)
+[DeoGlory Scheduler] Inactivity check initialized - will run daily at 15:30 (America/Sao_Paulo)
+[Daily Verse Scheduler] Initialized - will run daily at 07:00 (America/Sao_Paulo)
+[Daily Verse Scheduler] Banner cleanup initialized - will remove from banner at 23:59 (America/Sao_Paulo)
+[Recovery Verses Scheduler] Initialized - will run daily at 15:30 (America/Sao_Paulo)
+[Instagram Scheduler] Initialized - will sync every 6 hours (America/Sao_Paulo)
+[Instagram Scheduler] Running sync...
+[Instagram] Starting sync...
+[Daily Missions Scheduler] Initialized - will run daily at 00:00 (America/Sao_Paulo)
+[Weekly Goal Scheduler] Initialized - will run every Saturday at 23:59 (America/Sao_Paulo)
+[Event Scheduler] Lesson release initialized - will run daily at 00:00 (America/Sao_Paulo)
+[Event Scheduler] Card distribution initialized - will run daily at 23:59 (America/Sao_Paulo)
+[Event Deadline Scheduler] Initialized - will run every hour at :00 (America/Sao_Paulo) with database persistence
+[Marketing Reminder Scheduler] Initialized - will run every hour at :30 (America/Sao_Paulo) with database persistence
+[Treasury Scheduler] Day 5 reminder initialized - will run on day 5 of each month at 08:00 (America/Sao_Paulo)
+[Treasury Scheduler] 5th business day reminder initialized - will run on weekdays at 08:00 (America/Sao_Paulo)
+[Shop Scheduler] Abandoned cart reminder initialized - will run every hour (America/Sao_Paulo) with auto-cancel after 48h
+[Treasury Scheduler] Loan installment reminder initialized - will run daily at 08:00 (America/Sao_Paulo)
+[Shop Scheduler] Shop installment reminder initialized - will run daily at 08:00 (America/Sao_Paulo)
+[Shop Scheduler] Overdue installment checker initialized - will run daily at 09:00 (America/Sao_Paulo)
+[Event Fee Scheduler] Event fee reminder initialized - will run daily at 08:00 (America/Sao_Paulo)
+[Treasury Scheduler] Year rollover initialized - will run on Jan 1st at 00:05 (America/Sao_Paulo)
+[Treasury Scheduler] Monthly summary initialized - will run on day 1 of each month at 08:00 (America/Sao_Paulo)
+[Instagram Token Scheduler] Token refresh initialized - will run daily at 07:00 (America/Sao_Paulo)
+[Instagram Stories Scheduler] Verse image generation initialized - will run daily at 07:05 (America/Sao_Paulo)
+[Instagram Stories Scheduler] Reflection image generation initialized - will run daily at 07:08 (America/Sao_Paulo)
+[Instagram Stories Scheduler] Verse story initialized - will run daily at 07:10 (America/Sao_Paulo)
+[Instagram Stories Scheduler] Reflection story initialized - will run daily at 07:15 (America/Sao_Paulo)
+[Instagram Stories Scheduler] Birthday image generation initialized - will run daily at 08:01 (America/Sao_Paulo)
+[Instagram Stories Scheduler] Birthday stories initialized - will run daily at 08:05 (America/Sao_Paulo)
+5:31:15 PM [express] Database and schedulers initialized successfully
+⚠️ [Instagram API] DNS bloqueado (ENOTFOUND). Usando bypass via IP direto...
+🔧 [Bypass] Tentativa 1/3 via IP 104.21.39.212 (Host: umpemaus-instagram.marketingumpemaus.workers.dev, SNI: umpemaus-instagram.marketingumpemaus.workers.dev)
+[Migration] Completed in 0.2s
+[Migration] Migrated: 0, Failed: 0, Skipped: 0
+[Daily Verse Scheduler] Running initial check at startup...
+[Daily Verse Scheduler] Sending daily verse notification...
+[Daily Verse Scheduler] Already sent today (2026-02-27), skipping
+[Recovery Verses Scheduler] Running initial check at startup...
+[Recovery Verses Scheduler] Generating daily recovery verses...
+[BibleAPI] 30 recovery verses fetched successfully from ABíbliaDigital
+[Recovery Verses Scheduler] Skipping duplicate: Isaías 40:31 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Filipenses 4:6 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Apocalipse 21:4 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Filipenses 4:7 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Salmos 27:1 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Tiago 1:3 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: 2 Coríntios 4:17 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: 2 Coríntios 4:16 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Romanos 8:38 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Salmos 121:1 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Mateus 11:28 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Salmos 46:1 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Mateus 6:34 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Salmos 91:1 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: 2 Coríntios 1:4 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Salmos 55:22 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: João 16:33 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: João 14:27 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Salmos 23:1 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Salmos 91:2 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: 1 Pedro 5:7 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: 2 Coríntios 1:3 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Tiago 1:2 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Salmos 23:4 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Isaías 43:2 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Isaías 43:1 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Hebreus 13:6 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Filipenses 4:13 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Romanos 8:39 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Salmos 34:18 (ARA)
+[Recovery Verses Scheduler] Added 0 new recovery verses for recovery-2026-02-27
+[Daily Missions Scheduler] Running initial check at startup...
+[Daily Missions Scheduler] Refreshing daily missions with AI...
+[Daily Missions Scheduler] Content already generated for today (2026-02-27)
+⚠️ [Bypass] IP 104.21.39.212 falhou: Client network socket disconnected before secure TLS connection was established
+🔧 [Bypass] Tentativa 2/3 via IP 172.67.148.227 (Host: umpemaus-instagram.marketingumpemaus.workers.dev, SNI: umpemaus-instagram.marketingumpemaus.workers.dev)
+⚠️ [Bypass] IP 172.67.148.227 falhou: Client network socket disconnected before secure TLS connection was established
+[Instagram] Error fetching posts: Error: Todas as 3 tentativas de bypass falharam para umpemaus-instagram.marketingumpemaus.workers.dev
+    at fetchWithRetry (file:///app/dist/index.js:14737:11)
+    at async fetchInstagramPosts (file:///app/dist/index.js:14767:22)
+    at async syncInstagramPosts (file:///app/dist/index.js:14787:19)
+    at async runInstagramSync (file:///app/dist/index.js:16562:20)
+[Instagram] No new posts fetched
+[Instagram Scheduler] Sync completed: 0 posts synced, 0 errors
+5:32:03 PM [express] GET /api/push/status 304 in 30ms :: {"hasSubscription":true,"count":1}
+5:32:03 PM [express] GET /api/site-content/quem-somos 304 in 6ms :: {"email":{"title":"","content":"…
+5:32:03 PM [express] GET /api/forms/pending 304 in 8ms :: []
+5:32:03 PM [express] GET /api/site/daily-verse 304 in 9ms :: {"id":55,"verse":"fitando os olhos em J…
+5:32:03 PM [express] GET /api/site/highlights 304 in 61ms :: {"devotional":{"id":6,"title":"Cristo c…
+5:32:03 PM [express] GET /api/notifications/unread-count 304 in 81ms :: {"count":0}
+5:32:03 PM [express] GET /api/notifications 304 in 74ms :: {"notifications":[{"id":1822,"userId":1,"…
+5:32:04 PM [express] GET /api/push/vapid-key 304 in 1ms :: {"publicKey":"BJyzrSxzvZ1RVtMvUD8MtIfZakv…
+5:32:05 PM [express] GET /api/push/status 304 in 6ms :: {"hasSubscription":true,"count":1}
+5:32:05 PM [express] GET /api/push/vapid-key 304 in 1ms :: {"publicKey":"BJyzrSxzvZ1RVtMvUD8MtIfZakv…
+5:32:05 PM [express] GET /api/push/status 304 in 4ms :: {"hasSubscription":true,"count":1}
+5:32:10 PM [express] GET /api/marketing/stats 304 in 7ms :: {"events":{"total":1,"upcoming":0,"past"…
+5:32:10 PM [express] GET /api/admin/instagram 304 in 5ms :: {"configured":true,"posts":[{"id":3421,"…
+[Instagram Stories] No saved verse image, generating via Puppeteer...
+[Puppeteer] Generating verse share image...
+[Puppeteer] Launching browser...
+5:32:14 PM [express] GET /api/site-content/quem-somos 200 in 6ms :: {"email":{"title":"","content":"…
+5:32:14 PM [express] GET /api/site/daily-verse 200 in 10ms :: {"id":55,"verse":"fitando os olhos em …
+5:32:14 PM [express] GET /api/site/daily-verses 200 in 10ms :: [{"id":55,"verse":"fitando os olhos e…
+5:32:14 PM [express] GET /api/push/vapid-key 200 in 1ms :: {"publicKey":"BJyzrSxzvZ1RVtMvUD8MtIfZakv…
+5:32:49 PM [express] GET /api/site-content/quem-somos 304 in 40ms :: {"email":{"title":"","content":…
+5:32:49 PM [express] GET /api/site/daily-verse 304 in 50ms :: {"id":55,"verse":"fitando os olhos em …
+5:32:49 PM [express] GET /api/site/highlights 304 in 59ms :: {"devotional":{"id":6,"title":"Cristo c…
+Instagram verse story publish error: TimeoutError: Waiting for selector `[data-testid="dialog-share-verse"]` failed
+    at CSSQueryHandler.waitFor (file:///app/node_modules/puppeteer-core/lib/esm/puppeteer/common/QueryHandler.js:211:46)
+    at async CdpFrame.waitForSelector (file:///app/node_modules/puppeteer-core/lib/esm/puppeteer/api/Frame.js:541:21)
+    ... 2 lines matching cause stack trace ...
+    at async file:///app/dist/index.js:23859:34 {
+  cause: TimeoutError: Waiting failed: 30000ms exceeded
+      at new WaitTask (file:///app/node_modules/puppeteer-core/lib/esm/puppeteer/common/WaitTask.js:46:34)
+      at IsolatedWorld.waitForFunction (file:///app/node_modules/puppeteer-core/lib/esm/puppeteer/api/Realm.js:22:26)
+      at CSSQueryHandler.waitFor (file:///app/node_modules/puppeteer-core/lib/esm/puppeteer/common/QueryHandler.js:176:95)
+      at async CdpFrame.waitForSelector (file:///app/node_modules/puppeteer-core/lib/esm/puppeteer/api/Frame.js:541:21)
+      at async CdpPage.waitForSelector (file:///app/node_modules/puppeteer-core/lib/esm/puppeteer/api/Page.js:1381:20)
+      at async generateVerseShareImage (file:///app/dist/index.js:15061:5)
+      at async file:///app/dist/index.js:23859:34
+}
+5:32:50 PM [express] POST /api/admin/instagram/publish-verse-story 500 in 37121ms :: {"message":"Wai…
+5:32:50 PM [express] GET /api/push/vapid-key 304 in 1ms :: {"publicKey":"BJyzrSxzvZ1RVtMvUD8MtIfZakv…
+ 

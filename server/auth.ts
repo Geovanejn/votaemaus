@@ -100,7 +100,7 @@ export function requireAdminOrMarketing(
   res: Response,
   next: NextFunction
 ) {
-  if (!req.user?.isAdmin && req.user?.secretaria !== "marketing") {
+  if (!req.user?.isAdmin && !(req.user?.secretaria?.includes("marketing") ?? false)) {
     return res.status(403).json({ message: "Acesso negado: apenas administradores ou secretaria de marketing" });
   }
   next();
@@ -111,7 +111,7 @@ export function requireAdminOrEspiritualidade(
   res: Response,
   next: NextFunction
 ) {
-  if (!req.user?.isAdmin && req.user?.secretaria !== "espiritualidade") {
+  if (!req.user?.isAdmin && !(req.user?.secretaria?.includes("espiritualidade") ?? false)) {
     return res.status(403).json({ message: "Acesso negado: apenas administradores ou secretaria de espiritualidade" });
   }
   next();
@@ -122,7 +122,7 @@ export function requireMarketing(
   res: Response,
   next: NextFunction
 ) {
-  if (!req.user?.isAdmin && req.user?.secretaria !== "marketing") {
+  if (!req.user?.isAdmin && !(req.user?.secretaria?.includes("marketing") ?? false)) {
     return res.status(403).json({ message: "Acesso negado: apenas administradores ou secretaria de marketing" });
   }
   next();

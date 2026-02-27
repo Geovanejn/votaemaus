@@ -7,6 +7,8 @@ const INSTAGRAM_USER_ID = process.env.INSTAGRAM_USER_ID || process.env.INSTAGRAM
 const INSTAGRAM_ACCOUNT_ID = process.env.INSTAGRAM_ACCOUNT_ID || "";
 const INSTAGRAM_APP_ID = process.env.INSTAGRAM_APP_ID || "";
 const INSTAGRAM_APP_SECRET = process.env.INSTAGRAM_APP_SECRET || "";
+const INSTAGRAM_PROXY_URL = process.env.INSTAGRAM_PROXY_URL || "";
+const GRAPH_API_BASE = INSTAGRAM_PROXY_URL || "https://graph.facebook.com";
 
 // ==================== HELPER: RETRY & BYPASS LOGIC ====================
 
@@ -163,7 +165,7 @@ export function isInstagramConfigured(): boolean {
 async function fetchCarouselChildren(mediaId: string): Promise<InstagramChildrenResponse["data"]> {
   try {
     const fields = "id,media_type,media_url,thumbnail_url";
-    const url = `https://graph.facebook.com/v18.0/${mediaId}/children?fields=${fields}&access_token=${INSTAGRAM_ACCESS_TOKEN}`;
+    const url = `${GRAPH_API_BASE}/v18.0/${mediaId}/children?fields=${fields}&access_token=${INSTAGRAM_ACCESS_TOKEN}`;
     
     const response = await fetchWithRetry(url);
     
@@ -188,7 +190,7 @@ export async function fetchInstagramPosts(limit: number = 12): Promise<Instagram
 
   try {
     const fields = "id,caption,media_type,media_url,permalink,timestamp,thumbnail_url,like_count,comments_count";
-    const url = `https://graph.facebook.com/v18.0/${INSTAGRAM_USER_ID}/media?fields=${fields}&limit=${limit}&access_token=${INSTAGRAM_ACCESS_TOKEN}`;
+    const url = `${GRAPH_API_BASE}/v18.0/${INSTAGRAM_USER_ID}/media?fields=${fields}&limit=${limit}&access_token=${INSTAGRAM_ACCESS_TOKEN}`;
     
     const response = await fetchWithRetry(url);
     
@@ -299,7 +301,7 @@ export async function fetchInstagramComments(instagramId: string, limit: number 
 
   try {
     const fields = "id,text,username,timestamp";
-    const url = `https://graph.facebook.com/v18.0/${instagramId}/comments?fields=${fields}&limit=${limit}&access_token=${INSTAGRAM_ACCESS_TOKEN}`;
+    const url = `${GRAPH_API_BASE}/v18.0/${instagramId}/comments?fields=${fields}&limit=${limit}&access_token=${INSTAGRAM_ACCESS_TOKEN}`;
     
     const response = await fetchWithRetry(url);
     
@@ -317,7 +319,7 @@ export async function refreshInstagramToken(): Promise<boolean> {
   if (!INSTAGRAM_ACCESS_TOKEN) return false;
   
   try {
-    const url = `https://graph.facebook.com/v18.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${INSTAGRAM_APP_ID}&client_secret=${INSTAGRAM_APP_SECRET}&fb_exchange_token=${INSTAGRAM_ACCESS_TOKEN}`;
+    const url = `${GRAPH_API_BASE}/v18.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${INSTAGRAM_APP_ID}&client_secret=${INSTAGRAM_APP_SECRET}&fb_exchange_token=${INSTAGRAM_ACCESS_TOKEN}`;
     
     const response = await fetchWithRetry(url);
     
@@ -349,7 +351,7 @@ interface StoryPublishResult {
 
 async function createStoryContainer(imageUrl: string): Promise<{ containerId?: string; error?: string }> {
   try {
-    const url = `https://graph.facebook.com/v18.0/${INSTAGRAM_ACCOUNT_ID}/media`;
+    const url = `${GRAPH_API_BASE}/v18.0/${INSTAGRAM_ACCOUNT_ID}/media`;
     
     const response = await fetchWithRetry(url, {
       method: 'POST',
@@ -381,7 +383,7 @@ async function createStoryContainer(imageUrl: string): Promise<{ containerId?: s
 
 async function checkContainerStatus(containerId: string): Promise<'FINISHED' | 'IN_PROGRESS' | 'ERROR'> {
   try {
-    const url = `https://graph.facebook.com/v18.0/${containerId}?fields=status_code&access_token=${INSTAGRAM_ACCESS_TOKEN}`;
+    const url = `${GRAPH_API_BASE}/v18.0/${containerId}?fields=status_code&access_token=${INSTAGRAM_ACCESS_TOKEN}`;
     
     const response = await fetchWithRetry(url);
     const data = await response.json();
@@ -397,7 +399,7 @@ async function checkContainerStatus(containerId: string): Promise<'FINISHED' | '
 
 async function publishStoryFromContainer(containerId: string): Promise<StoryPublishResult> {
   try {
-    const url = `https://graph.facebook.com/v18.0/${INSTAGRAM_ACCOUNT_ID}/media_publish`;
+    const url = `${GRAPH_API_BASE}/v18.0/${INSTAGRAM_ACCOUNT_ID}/media_publish`;
     
     const response = await fetchWithRetry(url, {
       method: 'POST',
@@ -453,7 +455,7 @@ export async function testInstagramStoryConfig(): Promise<{ configured: boolean;
   if (!isInstagramPublishingConfigured()) return { configured: false, error: 'Missing configuration' };
   
   try {
-    const url = `https://graph.facebook.com/v18.0/${INSTAGRAM_ACCOUNT_ID}?fields=id,username&access_token=${INSTAGRAM_ACCESS_TOKEN}`;
+    const url = `${GRAPH_API_BASE}/v18.0/${INSTAGRAM_ACCOUNT_ID}?fields=id,username&access_token=${INSTAGRAM_ACCESS_TOKEN}`;
     const response = await fetchWithRetry(url);
     const data = await response.json();
     

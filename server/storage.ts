@@ -5226,7 +5226,7 @@ export class DatabaseStorage implements IStorage {
   async getLessonsForSeason(seasonId: number): Promise<schema.StudyLesson[]> {
     return db.select().from(schema.studyLessons)
       .where(eq(schema.studyLessons.seasonId, seasonId))
-      .orderBy(asc(schema.studyLessons.orderIndex));
+      .orderBy(asc(schema.studyLessons.lessonNumber), asc(schema.studyLessons.orderIndex));
   }
 
   // OPTIMIZED: Batch queries for season lessons - LIGHTWEIGHT payload for listing
@@ -5255,7 +5255,7 @@ export class DatabaseStorage implements IStorage {
         )
       )
       .where(eq(schema.studyLessons.seasonId, seasonId))
-      .orderBy(asc(schema.studyLessons.orderIndex));
+      .orderBy(asc(schema.studyLessons.lessonNumber), asc(schema.studyLessons.orderIndex));
     
     if (lessonsWithProgress.length === 0) return [];
     

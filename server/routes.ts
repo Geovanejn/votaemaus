@@ -4482,6 +4482,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (!lesson) {
           return res.status(404).json({ message: "Lição não encontrada" });
         }
+
+        if (!isLocked && lesson.seasonId) {
+          const season = await storage.getSeasonById(lesson.seasonId);
+          if (season) {
+            notifyNewLessonToAll(lesson.title, season.title, "revista").catch(err =>
+              console.error("[Notifications] Error notifying new lesson:", err)
+            );
+          }
+        } else if (!isLocked && lesson.studyWeekId) {
+          const week = await storage.getStudyWeekById(lesson.studyWeekId);
+          if (week) {
+            notifyNewLessonToAll(lesson.title, week.title, "unidade").catch(err =>
+              console.error("[Notifications] Error notifying new lesson:", err)
+            );
+          }
+        }
+
         return res.json(lesson);
       }
 
@@ -8382,9 +8399,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Lição não encontrada" });
       }
 
+      const newIsLocked = !lesson.isLocked;
       const updated = await storage.updateStudyLesson(lessonId, {
-        isLocked: !lesson.isLocked
+        isLocked: newIsLocked
       });
+
+      if (!newIsLocked && updated) {
+        const season = await storage.getSeasonById(seasonId);
+        if (season) {
+          notifyNewLessonToAll(lesson.title, season.title, "revista").catch(err =>
+            console.error("[Notifications] Error notifying new lesson:", err)
+          );
+        }
+      }
 
       res.json(updated);
     } catch (error) {

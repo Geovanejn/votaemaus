@@ -148,6 +148,14 @@ async function runPendingMigrations(): Promise<void> {
       name: "add_access_level_to_seasons",
       sql: `ALTER TABLE seasons ADD COLUMN IF NOT EXISTS access_level TEXT NOT NULL DEFAULT 'members';`
     },
+    {
+      name: "add_original_image_url_to_site_events",
+      sql: `ALTER TABLE site_events ADD COLUMN IF NOT EXISTS original_image_url TEXT;`
+    },
+    {
+      name: "add_mobile_crop_data_to_site_events",
+      sql: `ALTER TABLE site_events ADD COLUMN IF NOT EXISTS mobile_crop_data TEXT;`
+    },
   ];
 
   for (const migration of migrations) {

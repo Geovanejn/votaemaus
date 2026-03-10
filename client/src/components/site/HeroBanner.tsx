@@ -26,6 +26,8 @@ interface EventData {
   title: string;
   description?: string;
   imageUrl?: string;
+  originalImageUrl?: string | null;
+  mobileCropData?: string | null;
   startDate: string;
   time?: string;
   location?: string;
@@ -146,6 +148,7 @@ export function HeroBanner() {
         subtitle: e.description || 'Participe conosco!',
         caption: `${formatEventDate(e.startDate)}${e.time ? ` às ${e.time}` : ''}${e.location ? ` - ${e.location}` : ''}`,
         imageUrl: e.imageUrl || defaultEventImg,
+        mobileImageUrl: e.originalImageUrl || e.imageUrl || defaultEventImg,
         linkUrl: `/agenda/${e.id}`,
         linkText: 'Ver Detalhes',
         icon: Calendar,
@@ -194,6 +197,7 @@ export function HeroBanner() {
         subtitle: e.description || 'Participe conosco!',
         caption: `${formatEventDate(e.startDate)}${e.time ? ` às ${e.time}` : ''}${e.location ? ` - ${e.location}` : ''}`,
         imageUrl: e.imageUrl || defaultEventImg,
+        mobileImageUrl: e.originalImageUrl || e.imageUrl || defaultEventImg,
         linkUrl: `/agenda/${e.id}`,
         linkText: 'Ver Detalhes',
         icon: Calendar,

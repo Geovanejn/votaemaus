@@ -153,6 +153,8 @@ CREATE TABLE IF NOT EXISTS "site_events" (
   "description" TEXT,
   "short_description" TEXT,
   "image_url" TEXT,
+  "original_image_url" TEXT,
+  "mobile_crop_data" TEXT,
   "start_date" TEXT NOT NULL,
   "end_date" TEXT,
   "time" TEXT,

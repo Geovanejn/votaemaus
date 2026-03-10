@@ -6256,7 +6256,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create event (admin or marketing)
   app.post("/api/admin/events", authenticateToken, requireAdminOrMarketing, async (req: AuthRequest, res) => {
     try {
-      const event = await storage.createSiteEvent({ ...req.body, createdBy: req.user!.id });
+      const eventData = { ...req.body, createdBy: req.user!.id };
+      if (eventData.mobileCropData && typeof eventData.mobileCropData === "object") {
+        eventData.mobileCropData = JSON.stringify(eventData.mobileCropData);
+      }
+      const event = await storage.createSiteEvent(eventData);
       
       // If event has a price and valid date, create event_fee entry automatically
       if (req.body.price && (req.body.startDate || req.body.endDate)) {
@@ -6306,14 +6310,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "ID invalido" });
       }
       
-      // Validate with dedicated update schema (strict mode rejects unknown fields)
-      const validatedData = updateSiteEventSchema.parse(req.body);
+      const rawData = { ...req.body };
+      if (rawData.mobileCropData && typeof rawData.mobileCropData === "object") {
+        rawData.mobileCropData = JSON.stringify(rawData.mobileCropData);
+      }
+      const validatedData = updateSiteEventSchema.parse(rawData);
       
       if (Object.keys(validatedData).length === 0) {
         return res.status(400).json({ message: "Nenhum campo valido para atualizar" });
       }
       
-      // Check if event is being published (was not published, now is)
       const existingEvent = await storage.getSiteEventById(id);
       const wasPublished = existingEvent?.isPublished;
       

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -11,6 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ImageUpload, IMAGE_UPLOAD_CONFIGS } from "@/components/ui/image-upload";
 import { LocationInput } from "@/components/ui/location-input";
+import MobileCropSelector from "@/components/MobileCropSelector";
 import {
   Form,
   FormControl,
@@ -29,13 +31,23 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { ArrowLeft, Save, Loader2, Calendar } from "lucide-react";
+import { ArrowLeft, Save, Loader2, Calendar, Smartphone, Check } from "lucide-react";
+import type { MobileCropData } from "@shared/schema";
+
+const mobileCropDataSchema = z.object({
+  x: z.number().min(0).max(100),
+  y: z.number().min(0).max(100),
+  width: z.number().min(0).max(100),
+  height: z.number().min(0).max(100),
+}).nullable();
 
 const eventFormSchema = z.object({
   title: z.string().min(3, "Titulo deve ter pelo menos 3 caracteres"),
   description: z.string().optional(),
   shortDescription: z.string().optional(),
   imageUrl: z.string().optional().or(z.literal("")),
+  originalImageUrl: z.string().optional().or(z.literal("")),
+  mobileCropData: mobileCropDataSchema.optional(),
   startDate: z.string().min(1, "Data de inicio e obrigatoria"),
   endDate: z.string().optional(),
   time: z.string().optional(),
@@ -57,6 +69,8 @@ interface SiteEvent {
   description?: string;
   shortDescription?: string;
   imageUrl?: string;
+  originalImageUrl?: string;
+  mobileCropData?: string;
   startDate: string;
   endDate?: string;
   time?: string;
@@ -83,6 +97,16 @@ export default function MarketingEventoEditor({ params }: { params?: { id: strin
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const isEditing = params?.id && params.id !== "novo";
+  const [showMobileCrop, setShowMobileCrop] = useState(false);
+
+  const parseMobileCropData = (data: string | null | undefined): MobileCropData | null => {
+    if (!data) return null;
+    try {
+      return JSON.parse(data);
+    } catch {
+      return null;
+    }
+  };
 
   const { data: event, isLoading: loadingEvent } = useQuery<SiteEvent>({
     queryKey: ["/api/admin/events", params?.id],
@@ -96,6 +120,8 @@ export default function MarketingEventoEditor({ params }: { params?: { id: strin
       description: "",
       shortDescription: "",
       imageUrl: "",
+      originalImageUrl: "",
+      mobileCropData: null,
       startDate: "",
       endDate: "",
       time: "",
@@ -113,6 +139,8 @@ export default function MarketingEventoEditor({ params }: { params?: { id: strin
       description: event.description || "",
       shortDescription: event.shortDescription || "",
       imageUrl: event.imageUrl || "",
+      originalImageUrl: event.originalImageUrl || "",
+      mobileCropData: parseMobileCropData(event.mobileCropData),
       startDate: event.startDate,
       endDate: event.endDate || "",
       time: event.time || "",
@@ -265,7 +293,16 @@ export default function MarketingEventoEditor({ params }: { params?: { id: strin
                     <FormControl>
                       <ImageUpload
                         value={field.value}
-                        onChange={field.onChange}
+                        onChange={(url) => {
+                          field.onChange(url);
+                          form.setValue("mobileCropData", null);
+                          if (!url) {
+                            form.setValue("originalImageUrl", "");
+                          }
+                        }}
+                        onOriginalUpload={(url) => {
+                          form.setValue("originalImageUrl", url);
+                        }}
                         aspectRatio={IMAGE_UPLOAD_CONFIGS.event.aspectRatio}
                         placeholder={IMAGE_UPLOAD_CONFIGS.event.placeholder}
                       />
@@ -276,6 +313,53 @@ export default function MarketingEventoEditor({ params }: { params?: { id: strin
                     <FormMessage />
                   </FormItem>
                 )}
+              />
+
+              {form.watch("imageUrl") && (
+                <FormField
+                  control={form.control}
+                  name="mobileCropData"
+                  render={({ field }) => (
+                    <FormItem>
+                      <div className="flex items-center gap-2">
+                        <FormLabel>Recorte Mobile</FormLabel>
+                        {field.value && (
+                          <span className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
+                            <Check className="h-3 w-3" />
+                            Configurado
+                          </span>
+                        )}
+                      </div>
+                      <FormControl>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => setShowMobileCrop(true)}
+                          className="gap-2"
+                          data-testid="button-configure-mobile-crop"
+                        >
+                          <Smartphone className="h-4 w-4" />
+                          {field.value ? "Editar Recorte Mobile" : "Configurar Recorte Mobile"}
+                        </Button>
+                      </FormControl>
+                      <FormDescription>
+                        Selecione a area da imagem que sera exibida em dispositivos moveis (4:5)
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+
+              <MobileCropSelector
+                open={showMobileCrop}
+                onOpenChange={setShowMobileCrop}
+                imageSrc={form.watch("originalImageUrl") || form.watch("imageUrl") || ""}
+                cropData={form.watch("mobileCropData")}
+                onCropComplete={(data) => {
+                  form.setValue("mobileCropData", data);
+                  setShowMobileCrop(false);
+                }}
               />
 
               <FormField

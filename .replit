@@ -57,6 +57,7 @@ RESEND_API_KEY = "re_Yr1HaGUQ_KZVQzTHT5zfEoXAwUYYGAbpn"
 ADMIN_PASSWORD = "111111"
 ADMIN_EMAIL = "marketingumpemaus@gmail.com"
 INSTAGRAM_PROXY_URL = "https://umpemaus.com.br/igproxy"
+PEXELS_API_KEY = "xbZIN4kEpzFIPwRBKUflAES3bnpLuuXUudEB43Cwh1poKsTsw8bDF3r1"
 
 [userenv.production]
 R2_PUBLIC_URL = "https://pub-73bb54c6aac24e7a926425a7c58e7c2d.r2.dev"

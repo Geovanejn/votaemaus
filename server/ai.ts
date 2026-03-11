@@ -1857,6 +1857,142 @@ Responda APENAS em formato JSON:
   }
 }
 
+export async function generateVerseImageQuery(verse: string, reference: string): Promise<{ query: string; context: string } | null> {
+  if (!isAIConfigured()) return null;
+
+  const geminiKeys = ["1", "2", "3", "4", "5"];
+  const models = ["gemini-2.0-flash", "gemini-2.5-flash"];
+
+  for (const key of geminiKeys) {
+    for (const modelName of models) {
+      try {
+        const selectedModel = getGeminiModel(key, modelName);
+
+        const prompt = `You are an expert at understanding biblical context and selecting appropriate imagery.
+
+Analyze this Bible verse and generate a search query for finding a stock photo that visually represents its spiritual theme.
+
+Verse: "${verse}"
+Reference: ${reference}
+
+RULES:
+1. Identify the CORE SPIRITUAL THEME (e.g., prayer, worship, sacrifice, hope, nature's beauty, forgiveness, strength, peace, guidance, faith, love, grace, salvation, comfort, trust)
+2. Generate a search query in ENGLISH that describes a REAL PHOTOGRAPH (not illustration) matching the theme
+3. The image should be INSPIRATIONAL and BEAUTIFUL - suitable as a background for a devotional app
+4. Be SPECIFIC about the scene. Examples:
+   - Prayer theme → "person praying hands clasped peaceful light"
+   - Worship theme → "person arms raised mountain sunrise worship"
+   - Cross/sacrifice → "wooden cross hilltop dramatic sky sunrise"
+   - Hope/light → "sunlight breaking through dark clouds golden rays"
+   - Peace/rest → "calm lake mountains reflection peaceful morning"
+   - Nature/creation → "majestic mountain landscape golden hour"
+   - Guidance/path → "winding path through forest sunlight trees"
+   - Strength → "person standing cliff edge overlooking vast landscape"
+   - Love/community → "group people holding hands sunset silhouette"
+   - Forgiveness/grace → "open hands receiving light warm golden"
+5. NEVER include text, logos, or watermarks in the description
+6. Prefer outdoor, nature, or atmospheric scenes with good lighting
+7. The query must be 4-8 words, focused and specific
+
+Respond ONLY in JSON:
+{
+  "query": "english search query 4-8 words",
+  "context": "one word theme in portuguese (e.g., oração, adoração, esperança, paz, força)"
+}`;
+
+        const result = await selectedModel.generateContent(prompt);
+        const text = result.response.text();
+
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) continue;
+
+        const parsed = JSON.parse(jsonMatch[0]);
+        if (parsed.query && parsed.context) {
+          console.log(`[Verse Image] Context: "${parsed.context}" → Query: "${parsed.query}"`);
+          return { query: parsed.query, context: parsed.context };
+        }
+      } catch (error: any) {
+        if (error?.status === 429 || error?.message?.includes('quota')) continue;
+        console.warn(`[Verse Image] Error with key ${key}, model ${modelName}:`, error?.message);
+      }
+    }
+  }
+
+  console.error('[Verse Image] All Gemini keys exhausted for image query generation');
+  return null;
+}
+
+export async function fetchContextualVerseImage(query: string, usedImageUrls: string[]): Promise<{ imageUrl: string; imageBuffer: Buffer } | null> {
+  const encodedQuery = encodeURIComponent(query + " inspirational");
+  const pageVariants = Array.from({ length: 5 }, (_, i) => i + 1);
+
+  for (const page of pageVariants) {
+    try {
+      const searchUrl = `https://unsplash.com/napi/search/photos?query=${encodedQuery}&per_page=10&page=${page}&orientation=landscape`;
+      const response = await fetch(searchUrl, {
+        headers: {
+          'Accept': 'application/json',
+          'Accept-Language': 'en-US,en;q=0.9',
+        }
+      });
+
+      if (!response.ok) {
+        console.warn(`[Verse Image] Unsplash search failed (${response.status}), trying fallback...`);
+        break;
+      }
+
+      const data = await response.json();
+      const results = data.results || [];
+
+      for (const photo of results) {
+        const photoUrl = photo.urls?.regular || photo.urls?.full;
+        const photoId = photo.id;
+
+        if (!photoUrl) continue;
+        if (usedImageUrls.some(used => used.includes(photoId))) continue;
+
+        try {
+          const imgResponse = await fetch(photoUrl);
+          if (!imgResponse.ok) continue;
+
+          const arrayBuffer = await imgResponse.arrayBuffer();
+          const imageBuffer = Buffer.from(arrayBuffer);
+
+          if (imageBuffer.length < 10000) continue;
+
+          console.log(`[Verse Image] Found image: ${photoId} (${photoUrl.substring(0, 80)}...)`);
+          return { imageUrl: photoUrl, imageBuffer };
+        } catch {
+          continue;
+        }
+      }
+    } catch (error) {
+      console.warn(`[Verse Image] Search page ${page} error:`, error);
+    }
+  }
+
+  try {
+    const directUrl = `https://source.unsplash.com/1200x800/?${encodedQuery}&sig=${Date.now()}`;
+    const response = await fetch(directUrl, { redirect: 'follow' });
+    if (response.ok) {
+      const arrayBuffer = await response.arrayBuffer();
+      const imageBuffer = Buffer.from(arrayBuffer);
+      if (imageBuffer.length > 10000) {
+        const finalUrl = response.url;
+        if (!usedImageUrls.some(used => used === finalUrl)) {
+          console.log(`[Verse Image] Using source.unsplash.com fallback`);
+          return { imageUrl: finalUrl, imageBuffer };
+        }
+      }
+    }
+  } catch (error) {
+    console.warn(`[Verse Image] Source fallback error:`, error);
+  }
+
+  console.error(`[Verse Image] Could not find contextual image for query: "${query}"`);
+  return null;
+}
+
 // Local fallback recovery verses to avoid API calls when quota is low
 const LOCAL_RECOVERY_VERSES = [
   { verse: "Não temas, porque eu sou contigo; não te assombres, porque eu sou o teu Deus; eu te fortaleço, e te ajudo, e te sustento com a destra da minha justiça.", reference: "Isaías 41:10 (ARA)", reflection: "Deus está sempre conosco, mesmo nos momentos mais difíceis." },

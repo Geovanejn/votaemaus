@@ -156,6 +156,10 @@ async function runPendingMigrations(): Promise<void> {
       name: "add_mobile_crop_data_to_site_events",
       sql: `ALTER TABLE site_events ADD COLUMN IF NOT EXISTS mobile_crop_data TEXT;`
     },
+    {
+      name: "add_image_source_url_to_daily_verse_posts",
+      sql: `ALTER TABLE daily_verse_posts ADD COLUMN IF NOT EXISTS image_source_url TEXT;`
+    },
   ];
 
   for (const migration of migrations) {

@@ -3,7 +3,7 @@ import { storage } from "./storage";
 import { sendBirthdayEmail } from "./email";
 import { notifyStreakReminder, notifyInactivity, notifyDailyVerse, notifyDailyVerseWithLink, notifyEventDeadline, notifyEventStartingSoon, notifyEventStarted, notifyMarketingEventReminder, sendPushToAllMembers, sendPushToUser } from "./notifications";
 import { syncInstagramPosts, isInstagramConfigured, publishInstagramStory, isInstagramPublishingConfigured, refreshInstagramToken } from "./instagram";
-import { generateDailyVerseWithAI, generateRecoveryVersesWithAI, isAIConfigured } from "./ai";
+import { generateDailyVerseWithAI, generateRecoveryVersesWithAI, isAIConfigured, generateVerseImageQuery, fetchContextualVerseImage } from "./ai";
 import { getEventCurrentDay, getEventTotalDays, createBrazilDate, getDatePartsFromDate, getTodayBrazilParts } from "./utils/date";
 import { uploadStoryImageToR2 } from "./story-image-generator";
 import { generateVerseShareImage, generateReflectionShareImage, generateBirthdayShareImage } from "./puppeteer-image-generator";
@@ -543,6 +543,42 @@ ${sharedRules}`,
   return { reflection: null, reflectionTitle: null, highlightedKeywords: [], reflectionKeywords: [], reflectionReferences: [] };
 }
 
+async function getContextualVerseImage(verse: string, reference: string): Promise<{ imageUrl: string; sourceUrl: string } | null> {
+  try {
+    const queryResult = await generateVerseImageQuery(verse, reference);
+    if (!queryResult) {
+      console.log('[Daily Verse] AI could not generate image query, falling back to stock');
+      return null;
+    }
+
+    const recentPosts = await storage.getDailyVersePosts(60, 0, false);
+    const usedSourceUrls = recentPosts
+      .map(p => (p as any).imageSourceUrl || p.imageUrl)
+      .filter((url): url is string => !!url);
+
+    const imageResult = await fetchContextualVerseImage(queryResult.query, usedSourceUrls);
+    if (!imageResult) {
+      console.log('[Daily Verse] Could not fetch contextual image, falling back to stock');
+      return null;
+    }
+
+    const sourceUrl = imageResult.imageUrl;
+
+    const { isR2Configured, uploadToR2 } = await import('./r2-storage');
+    if (isR2Configured()) {
+      const filename = `verse-contextual-${Date.now()}.jpg`;
+      const r2Url = await uploadToR2(imageResult.imageBuffer, 'verses' as any, 'image/jpeg', filename);
+      console.log(`[Daily Verse] Contextual image uploaded to R2: ${r2Url}`);
+      return { imageUrl: r2Url, sourceUrl };
+    } else {
+      return { imageUrl: sourceUrl, sourceUrl };
+    }
+  } catch (error) {
+    console.error('[Daily Verse] Error getting contextual image:', error);
+    return null;
+  }
+}
+
 export async function forceDailyVerseGeneration(): Promise<{ success: boolean; message: string; postId?: number }> {
   console.log('[Daily Verse] FORCE generating daily verse (admin triggered)...');
   
@@ -575,8 +611,26 @@ export async function forceDailyVerseGeneration(): Promise<{ success: boolean; m
       console.log('[Daily Verse] AI not configured, using fallback verse');
     }
     
-    const stockImage = await storage.getNextDailyVerseStockImage();
-    const { reflection, reflectionTitle, highlightedKeywords, reflectionKeywords, reflectionReferences } = await generateVerseReflection(verse, reference);
+    const [contextualImage, { reflection, reflectionTitle, highlightedKeywords, reflectionKeywords, reflectionReferences }] = await Promise.all([
+      getContextualVerseImage(verse, reference),
+      generateVerseReflection(verse, reference),
+    ]);
+
+    let finalImageUrl: string | undefined;
+    let stockImageId: number | undefined;
+
+    if (contextualImage) {
+      finalImageUrl = contextualImage.imageUrl;
+      console.log('[Daily Verse] Using contextual AI-selected image');
+    } else {
+      const stockImage = await storage.getNextDailyVerseStockImage();
+      if (stockImage) {
+        finalImageUrl = stockImage.imageUrl;
+        stockImageId = stockImage.id;
+        await storage.updateDailyVerseStock(stockImage.id, { lastUsedAt: new Date() });
+        console.log('[Daily Verse] Fallback to stock image');
+      }
+    }
     
     const now = new Date();
     const formatter = new Intl.DateTimeFormat('en-US', {
@@ -599,26 +653,21 @@ export async function forceDailyVerseGeneration(): Promise<{ success: boolean; m
       highlightedKeywords: highlightedKeywords.length > 0 ? highlightedKeywords : undefined,
       reflectionKeywords: reflectionKeywords.length > 0 ? reflectionKeywords : undefined,
       reflectionReferences: reflectionReferences.length > 0 ? reflectionReferences : undefined,
-      stockImageId: stockImage?.id,
-      imageUrl: stockImage?.imageUrl,
+      stockImageId: stockImageId,
+      imageUrl: finalImageUrl,
+      imageSourceUrl: contextualImage?.sourceUrl,
       publishedAt: now,
       expiresAt,
       isActive: true,
-    });
+    } as any);
     
-    if (stockImage) {
-      await storage.updateDailyVerseStock(stockImage.id, { lastUsedAt: now });
-    }
-    
-    // Mark as sent so regular scheduler won't duplicate
     const todayKey = getTodayDateKey();
     const reminderKey = `daily_verse:${todayKey}`;
     await storage.markSchedulerReminderSent(reminderKey, 'daily_verse');
     
-    // Send push notification for force-generated verse (same as scheduler)
     await notifyDailyVerseWithLink(verse, reference, '/versiculo-do-dia');
     
-    console.log(`[Daily Verse] Force generated post ${post.id}`);
+    console.log(`[Daily Verse] Force generated post ${post.id} with ${contextualImage ? 'contextual' : 'stock'} image`);
     return { 
       success: true, 
       message: `Versículo gerado com sucesso: "${verse.substring(0, 50)}..." - ${reference}`,
@@ -666,13 +715,27 @@ async function sendDailyVerse(): Promise<void> {
       console.log('[Daily Verse Scheduler] AI not configured, using fallback verse');
     }
     
-    // Get next stock image for the daily verse post
-    const stockImage = await storage.getNextDailyVerseStockImage();
+    const [contextualImage, { reflection, reflectionTitle, highlightedKeywords, reflectionKeywords, reflectionReferences }] = await Promise.all([
+      getContextualVerseImage(verse, reference),
+      generateVerseReflection(verse, reference),
+    ]);
+
+    let finalImageUrl: string | undefined;
+    let stockImageId: number | undefined;
+
+    if (contextualImage) {
+      finalImageUrl = contextualImage.imageUrl;
+      console.log('[Daily Verse Scheduler] Using contextual AI-selected image');
+    } else {
+      const stockImage = await storage.getNextDailyVerseStockImage();
+      if (stockImage) {
+        finalImageUrl = stockImage.imageUrl;
+        stockImageId = stockImage.id;
+        await storage.updateDailyVerseStock(stockImage.id, { lastUsedAt: new Date() });
+        console.log('[Daily Verse Scheduler] Fallback to stock image');
+      }
+    }
     
-    // Generate AI reflection and highlighted keywords
-    const { reflection, reflectionTitle, highlightedKeywords, reflectionKeywords, reflectionReferences } = await generateVerseReflection(verse, reference);
-    
-    // Create expiration time (23:59:59 today in São Paulo timezone)
     const now = new Date();
     const formatter = new Intl.DateTimeFormat('en-US', {
       timeZone: 'America/Sao_Paulo',
@@ -685,10 +748,8 @@ async function sendDailyVerse(): Promise<void> {
     const month = parseInt(parts.find(p => p.type === 'month')?.value || '01') - 1;
     const day = parseInt(parts.find(p => p.type === 'day')?.value || '01');
     
-    // Set expiration to 23:59:59 São Paulo time
-    const expiresAt = new Date(year, month, day, 23 + 3, 59, 59); // +3 for UTC offset from São Paulo
+    const expiresAt = new Date(year, month, day, 23 + 3, 59, 59);
     
-    // Create daily verse post
     const post = await storage.createDailyVersePost({
       verse,
       reference,
@@ -697,19 +758,15 @@ async function sendDailyVerse(): Promise<void> {
       highlightedKeywords: highlightedKeywords.length > 0 ? highlightedKeywords : undefined,
       reflectionKeywords: reflectionKeywords.length > 0 ? reflectionKeywords : undefined,
       reflectionReferences: reflectionReferences.length > 0 ? reflectionReferences : undefined,
-      stockImageId: stockImage?.id,
-      imageUrl: stockImage?.imageUrl,
+      stockImageId: stockImageId,
+      imageUrl: finalImageUrl,
+      imageSourceUrl: contextualImage?.sourceUrl,
       publishedAt: now,
       expiresAt,
       isActive: true,
-    });
+    } as any);
     
-    // Mark stock image as used
-    if (stockImage) {
-      await storage.updateDailyVerseStock(stockImage.id, { lastUsedAt: now });
-    }
-    
-    console.log(`[Daily Verse Scheduler] Created post ${post.id} with stock image ${stockImage?.id || 'none'}`);
+    console.log(`[Daily Verse Scheduler] Created post ${post.id} with ${contextualImage ? 'contextual' : 'stock'} image`);
     
     // Send push notification with link to public page
     await notifyDailyVerseWithLink(verse, reference, '/versiculo-do-dia');

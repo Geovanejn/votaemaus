@@ -768,7 +768,8 @@ export const dailyVersePosts = pgTable("daily_verse_posts", {
   reflectionKeywords: text("reflection_keywords").array(), // AI-identified keywords for reflection (bold)
   reflectionReferences: text("reflection_references").array(), // Biblical references and quotes in reflection (italic)
   stockImageId: integer("stock_image_id").references(() => dailyVerseStock.id),
-  imageUrl: text("image_url"), // cached image URL for the day
+  imageUrl: text("image_url"),
+  imageSourceUrl: text("image_source_url"),
   verseShareImageUrl: text("verse_share_image_url"), // URL of the shared verse image (saved when shared via WhatsApp)
   reflectionShareImageUrl: text("reflection_share_image_url"), // URL of the shared reflection image (saved when shared via WhatsApp)
   publishedAt: timestamp("published_at").notNull(),

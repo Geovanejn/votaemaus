@@ -1,0 +1,258 @@
+Spaces
+Hugging Face's logo
+Umpemaus
+/
+umpemaus 
+
+like
+0
+
+
+Logs
+
+build
+container
+
+Logs Endpoint
+
+
+
+===== Application Startup at 2026-03-11 10:18:41 =====
+
+
+> rest-express@1.0.0 start
+> NODE_ENV=production node dist/index.js
+
+✓ Logo configured with public URL: https://umpemaus.com.br/logo-email.png
+[MercadoPago] Webhook URL configured: https://umpemaus.com.br/api/pix/webhook
+[MercadoPago] Client initialized successfully
+[Push] Web Push configured successfully
+🔧 [System] DNS Configurado: IPv4 First + Google DNS (8.8.8.8)
+[R2] Configured - Bucket: umpemaus, Public URL: https://pub-73bb54c6aac24e7a926425a7c58e7c2d.r2.dev
+[WebSocket] Server initialized
+10:19:15 AM [express] serving on port 7860
+Initializing PostgreSQL database connection...
+PostgreSQL connection successful: 2026-03-11T10:19:16.451Z
+[Migration] Schema migrations checked successfully
+Admin marketingumpemaus@gmail.com ja existe e esta configurado.
+Database initialized successfully!
+[Backfill] Nenhum pedido pago precisou de correção na tesouraria.
+[Backfill] Nenhuma parcela paga precisou de correção na tesouraria.
+[Backfill] Todos os pedidos manuais já possuem shareToken.
+[Migration] Starting image migration to R2...
+[Birthday Scheduler] Initialized - will run daily at 07:00 AM (America/Sao_Paulo)
+[DeoGlory Scheduler] Streak check initialized - will run daily at 19:00 (America/Sao_Paulo)
+[DeoGlory Scheduler] Inactivity check initialized - will run daily at 15:30 (America/Sao_Paulo)
+[Daily Verse Scheduler] Initialized - will run daily at 07:00 (America/Sao_Paulo)
+[Daily Verse Scheduler] Banner cleanup initialized - will remove from banner at 23:59 (America/Sao_Paulo)
+[Recovery Verses Scheduler] Initialized - will run daily at 15:30 (America/Sao_Paulo)
+[Instagram Scheduler] Initialized - will sync every 6 hours (America/Sao_Paulo)
+[Instagram Scheduler] Running sync...
+[Instagram] Starting sync...
+[Daily Missions Scheduler] Initialized - will run daily at 00:00 (America/Sao_Paulo)
+[Weekly Goal Scheduler] Initialized - will run every Saturday at 23:59 (America/Sao_Paulo)
+[Event Scheduler] Lesson release initialized - will run daily at 00:00 (America/Sao_Paulo)
+[Event Scheduler] Card distribution initialized - will run daily at 23:59 (America/Sao_Paulo)
+[Event Deadline Scheduler] Initialized - will run every hour at :00 (America/Sao_Paulo) with database persistence
+[Marketing Reminder Scheduler] Initialized - will run every hour at :30 (America/Sao_Paulo) with database persistence
+[Treasury Scheduler] Day 5 reminder initialized - will run on day 5 of each month at 08:00 (America/Sao_Paulo)
+[Treasury Scheduler] 5th business day reminder initialized - will run on weekdays at 08:00 (America/Sao_Paulo)
+[Shop Scheduler] Abandoned cart reminder initialized - will run every hour (America/Sao_Paulo) with auto-cancel after 48h
+[Treasury Scheduler] Loan installment reminder initialized - will run daily at 08:00 (America/Sao_Paulo)
+[Shop Scheduler] Shop installment reminder initialized - will run daily at 08:00 (America/Sao_Paulo)
+[Shop Scheduler] Overdue installment checker initialized - will run daily at 09:00 (America/Sao_Paulo)
+[Event Fee Scheduler] Event fee reminder initialized - will run daily at 08:00 (America/Sao_Paulo)
+[Treasury Scheduler] Year rollover initialized - will run on Jan 1st at 00:05 (America/Sao_Paulo)
+[Treasury Scheduler] Monthly summary initialized - will run on day 1 of each month at 08:00 (America/Sao_Paulo)
+[Instagram Token Scheduler] Token refresh initialized - will run daily at 07:00 (America/Sao_Paulo)
+[Instagram Stories Scheduler] Verse image generation initialized - will run daily at 07:05 (America/Sao_Paulo)
+[Instagram Stories Scheduler] Reflection image generation initialized - will run daily at 07:08 (America/Sao_Paulo)
+[Instagram Stories Scheduler] Verse story initialized - will run daily at 07:10 (America/Sao_Paulo)
+[Instagram Stories Scheduler] Reflection story initialized - will run daily at 07:15 (America/Sao_Paulo)
+[Instagram Stories Scheduler] Birthday image generation initialized - will run daily at 08:01 (America/Sao_Paulo)
+[Instagram Stories Scheduler] Birthday stories initialized - will run daily at 08:05 (America/Sao_Paulo)
+10:19:16 AM [express] Database and schedulers initialized successfully
+[Migration] Completed in 0.2s
+[Migration] Migrated: 0, Failed: 0, Skipped: 0
+[Instagram] Fetched 12 posts from API
+[Instagram] Sync completed: 12 saved, 0 errors
+[Instagram Scheduler] Sync completed: 12 posts synced, 0 errors
+[Daily Verse Scheduler] Running initial check at startup...
+[Daily Verse Scheduler] Sending daily verse notification...
+[Daily Verse Scheduler] Already sent today (2026-03-11), skipping
+[Recovery Verses Scheduler] Running initial check at startup...
+[Recovery Verses Scheduler] Generating daily recovery verses...
+[BibleAPI] 30 recovery verses fetched successfully from ABíbliaDigital
+[Recovery Verses Scheduler] Skipping duplicate: Salmos 121:2 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Isaías 43:2 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: 1 Pedro 5:7 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Salmos 27:1 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Salmos 55:22 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: 2 Coríntios 4:16 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Apocalipse 21:4 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Isaías 43:1 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: 2 Coríntios 1:4 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: 2 Coríntios 1:3 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Salmos 46:1 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Salmos 23:4 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: João 14:27 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Filipenses 4:6 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Filipenses 4:7 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Salmos 23:1 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Salmos 121:1 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: João 16:33 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Salmos 91:1 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Salmos 91:2 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Romanos 8:38 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Mateus 6:34 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Romanos 8:39 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Tiago 1:3 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Salmos 34:18 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: 2 Coríntios 4:17 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Isaías 40:31 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Isaías 41:10 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Hebreus 13:6 (ARA)
+[Recovery Verses Scheduler] Skipping duplicate: Filipenses 4:13 (ARA)
+[Recovery Verses Scheduler] Added 0 new recovery verses for recovery-2026-03-11
+[Daily Missions Scheduler] Running initial check at startup...
+[Daily Missions Scheduler] Refreshing daily missions with AI...
+[Daily Missions Scheduler] Content already generated for today (2026-03-11)
+10:23:36 AM [express] GET /api/push/vapid-key 304 in 2ms :: {"publicKey":"BJyzrSxzvZ1RVtMvUD8MtIfZakv…
+10:23:36 AM [express] GET /api/notifications 304 in 60ms :: {"notifications":[{"id":2271,"userId":2,"…
+10:23:36 AM [express] GET /api/notifications/unread-count 304 in 6ms :: {"count":0}
+10:23:36 AM [express] GET /api/forms/pending 304 in 43ms :: []
+10:23:36 AM [express] GET /api/push/status 304 in 5ms :: {"hasSubscription":true,"count":1}
+10:23:36 AM [express] GET /api/notifications/unread-count 304 in 6ms :: {"count":0}
+10:23:36 AM [express] GET /api/site/highlights 200 in 73ms :: {"devotional":{"id":7,"title":"Priscila…
+10:23:36 AM [express] GET /api/site-content/quem-somos 304 in 8ms :: {"email":{"title":"","content":"…
+10:23:36 AM [express] GET /api/site/daily-verse 200 in 16ms :: {"id":67,"verse":"Bendize, ó minha alm…
+10:23:36 AM [express] GET /api/notifications 304 in 12ms :: {"notifications":[{"id":2271,"userId":2,"…
+10:23:36 AM [express] GET /api/forms/pending 304 in 6ms :: []
+10:23:36 AM [express] GET /api/push/vapid-key 304 in 1ms :: {"publicKey":"BJyzrSxzvZ1RVtMvUD8MtIfZakv…
+10:23:37 AM [express] GET /api/push/status 304 in 9ms :: {"hasSubscription":true,"count":1}
+10:23:38 AM [express] GET /api/push/vapid-key 304 in 1ms :: {"publicKey":"BJyzrSxzvZ1RVtMvUD8MtIfZakv…
+10:23:38 AM [express] GET /api/push/status 304 in 7ms :: {"hasSubscription":true,"count":1}
+10:23:42 AM [express] GET /api/auth/google-client-id 304 in 1ms :: {"clientId":"581900474704-p3j14tee…
+10:23:44 AM [express] POST /api/auth/login-password 200 in 124ms :: {"user":{"id":1,"fullName":"Admin…
+10:23:45 AM [express] GET /api/push/vapid-key 304 in 1ms :: {"publicKey":"BJyzrSxzvZ1RVtMvUD8MtIfZakv…
+10:23:45 AM [express] GET /api/push/status 304 in 8ms :: {"hasSubscription":true,"count":1}
+10:23:50 AM [express] GET /api/forms/pending 304 in 8ms :: []
+10:23:51 AM [express] GET /api/push/vapid-key 304 in 0ms :: {"publicKey":"BJyzrSxzvZ1RVtMvUD8MtIfZakv…
+10:23:51 AM [express] GET /api/admin/daily-verses 200 in 9ms :: [{"id":67,"verse":"Bendize, ó minha a…
+10:23:51 AM [express] GET /api/espiritualidade/stats 200 in 13ms :: {"devotionals":{"total":5,"publis…
+10:23:52 AM [express] GET /api/push/vapid-key 304 in 1ms :: {"publicKey":"BJyzrSxzvZ1RVtMvUD8MtIfZakv…
+10:23:53 AM [express] GET /api/push/status 304 in 6ms :: {"hasSubscription":true,"count":1}
+10:23:54 AM [express] GET /api/site/highlights 200 in 20ms :: {"devotional":{"id":7,"title":"Priscila…
+10:23:54 AM [express] GET /api/site-content/quem-somos 200 in 7ms :: {"email":{"title":"","content":"…
+10:23:54 AM [express] GET /api/site/daily-verse 200 in 17ms :: {"id":67,"verse":"Bendize, ó minha alm…
+10:23:55 AM [express] GET /api/push/vapid-key 200 in 1ms :: {"publicKey":"BJyzrSxzvZ1RVtMvUD8MtIfZakv…
+10:23:57 AM [express] DELETE /api/admin/daily-verse/67 200 in 10ms :: {"success":true,"message":"Vers…
+10:23:57 AM [express] GET /api/admin/daily-verses 200 in 8ms :: [{"id":66,"verse":"Entrai pelas suas …
+10:23:59 AM [express] GET /api/admin/daily-verses 200 in 20ms :: [{"id":67,"verse":"Bendize, ó minha …
+10:24:05 AM [express] GET /api/forms/pending 304 in 6ms :: []
+10:24:05 AM [express] GET /api/admin/daily-verses 304 in 6ms :: [{"id":66,"verse":"Entrai pelas suas …
+10:24:05 AM [express] GET /api/espiritualidade/stats 304 in 8ms :: {"devotionals":{"total":5,"publish…
+10:24:06 AM [express] GET /api/push/vapid-key 304 in 1ms :: {"publicKey":"BJyzrSxzvZ1RVtMvUD8MtIfZakv…
+10:24:07 AM [express] GET /api/admin/daily-verses 304 in 18ms :: [{"id":66,"verse":"Entrai pelas suas…
+10:24:07 AM [express] GET /api/forms/pending 304 in 17ms :: []
+10:24:07 AM [express] GET /api/espiritualidade/stats 304 in 17ms :: {"devotionals":{"total":5,"publis…
+10:24:07 AM [express] GET /api/push/vapid-key 304 in 1ms :: {"publicKey":"BJyzrSxzvZ1RVtMvUD8MtIfZakv…
+[Daily Verse] FORCE generating daily verse (admin triggered)...
+[BibleAPI] Daily verse fetched successfully from ABíbliaDigital
+[Daily Verse] Using AI-generated verse
+[Daily Verse] Using prompt personality: Pastor Experiente (day 70, index 0)
+[Daily Verse] Trying key 1 with model gemini-3-flash-preview...
+10:24:09 AM [express] GET /api/push/vapid-key 304 in 1ms :: {"publicKey":"BJyzrSxzvZ1RVtMvUD8MtIfZakv…
+10:24:09 AM [express] GET /api/push/status 304 in 6ms :: {"hasSubscription":true,"count":1}
+[Verse Image] Context: "adoração" → Query: "person arms raised mountain sunrise worship"
+[Verse Image] Unsplash search failed (401), trying fallback...
+[Verse Image] Could not find contextual image for query: "person arms raised mountain sunrise worship"
+[Daily Verse] Could not fetch contextual image, falling back to stock
+[Daily Verse] Reflection and keywords generated successfully with key 1, model gemini-3-flash-preview
+[Daily Verse] Fallback to stock image
+[Push] Sending "✨ Versículo do Dia" to 41 members (including inactive)
+[Push] User 25 has no push subscriptions registered
+[Push] Successfully sent notification to member user 1
+[Push] Sent "✨ Versículo do Dia" to user 1 (1/1 success)
+[Push] User 42 has no push subscriptions registered
+[Push] Successfully sent notification to member user 12
+[Push] Sent "✨ Versículo do Dia" to user 12 (1/1 success)
+[Push] User 39 has no push subscriptions registered
+[Push] User 30 has no push subscriptions registered
+[Push] User 18 has no push subscriptions registered
+[Push] User 31 has no push subscriptions registered
+[Push] User 26 has no push subscriptions registered
+[Push] Successfully sent notification to member user 5
+[Push] Sent "✨ Versículo do Dia" to user 5 (1/1 success)
+[Push] Successfully sent notification to member user 13
+[Push] Sent "✨ Versículo do Dia" to user 13 (1/1 success)
+[Push] Successfully sent notification to member user 11
+[Push] Successfully sent notification to member user 11
+[Push] Sent "✨ Versículo do Dia" to user 11 (2/2 success)
+[Push] Successfully sent notification to member user 22
+[Push] Sent "✨ Versículo do Dia" to user 22 (1/1 success)
+[Push] User 15 has no push subscriptions registered
+[Push] User 20 has no push subscriptions registered
+[Push] Successfully sent notification to member user 2
+[Push] Sent "✨ Versículo do Dia" to user 2 (1/1 success)
+[Push] Successfully sent notification to member user 9
+[Push] Sent "✨ Versículo do Dia" to user 9 (1/1 success)
+[Push] Successfully sent notification to member user 41
+[Push] Sent "✨ Versículo do Dia" to user 41 (1/1 success)
+[Push] Successfully sent notification to member user 6
+[Push] Successfully sent notification to member user 6
+[Push] Sent "✨ Versículo do Dia" to user 6 (2/2 success)
+[Push] Successfully sent notification to member user 28
+[Push] Sent "✨ Versículo do Dia" to user 28 (1/1 success)
+[Push] User 17 has no push subscriptions registered
+[Push] Successfully sent notification to member user 35
+[Push] Sent "✨ Versículo do Dia" to user 35 (1/1 success)
+[Push] User 7 has no push subscriptions registered
+[Push] User 3 has no push subscriptions registered
+[Push] User 34 has no push subscriptions registered
+[Push] Successfully sent notification to member user 23
+[Push] Sent "✨ Versículo do Dia" to user 23 (1/1 success)
+[Push] Successfully sent notification to member user 19
+[Push] Sent "✨ Versículo do Dia" to user 19 (1/1 success)
+[Push] User 32 has no push subscriptions registered
+[Push] Successfully sent notification to member user 16
+[Push] Sent "✨ Versículo do Dia" to user 16 (1/1 success)
+[Push] User 40 has no push subscriptions registered
+[Push] User 24 has no push subscriptions registered
+[Push] User 14 has no push subscriptions registered
+[Push] User 27 has no push subscriptions registered
+[Push] User 4 has no push subscriptions registered
+[Push] User 8 has no push subscriptions registered
+[Push] User 37 has no push subscriptions registered
+[Push] Successfully sent notification to member user 38
+[Push] Sent "✨ Versículo do Dia" to user 38 (1/1 success)
+[Push] Successfully sent notification to member user 21
+[Push] Successfully sent notification to member user 21
+[Push] Sent "✨ Versículo do Dia" to user 21 (2/2 success)
+[Push] User 33 has no push subscriptions registered
+[Push] Successfully sent notification to member user 36
+[Push] Sent "✨ Versículo do Dia" to user 36 (1/1 success)
+[Push] User 29 has no push subscriptions registered
+[Push] Successfully sent notification to anonymous user 54
+[Push] Successfully sent notification to anonymous user 49
+[Push] Successfully sent notification to anonymous user 56
+[Notifications] Daily verse with link: 18 members, 3 anonymous visitors
+[Daily Verse] Force generated post 68 with stock image
+10:24:40 AM [express] POST /api/admin/daily-verse/force-generate 200 in 31703ms :: {"success":true,"m…
+10:24:48 AM [express] GET /api/notifications/unread-count 200 in 9ms :: {"count":7}
+10:24:48 AM [express] GET /api/site-content/quem-somos 304 in 9ms :: {"email":{"title":"","content":"…
+10:24:48 AM [express] GET /api/site/daily-verse 200 in 65ms :: {"id":68,"verse":"Bendize, ó minha alm…
+10:24:48 AM [express] GET /api/notifications 200 in 65ms :: {"notifications":[{"id":2272,"userId":1,"…
+10:24:48 AM [express] GET /api/site/highlights 304 in 65ms :: {"devotional":{"id":7,"title":"Priscila…
+10:24:51 AM [express] GET /api/site/daily-verses 200 in 8ms :: [{"id":68,"verse":"Bendize, ó minha al…
+10:24:53 AM [express] GET /api/forms/pending 304 in 6ms :: []
+10:24:53 AM [express] GET /api/notifications/unread-count 304 in 7ms :: {"count":7}
+10:24:53 AM [express] GET /api/site/daily-verse 304 in 8ms :: {"id":68,"verse":"Bendize, ó minha alma…
+10:24:53 AM [express] GET /api/site-content/quem-somos 304 in 3ms :: {"email":{"title":"","content":"…
+10:24:53 AM [express] GET /api/notifications 304 in 11ms :: {"notifications":[{"id":2272,"userId":1,"…
+10:24:53 AM [express] GET /api/site/daily-verses 304 in 10ms :: [{"id":68,"verse":"Bendize, ó minha a…
+10:24:54 AM [express] GET /api/push/vapid-key 304 in 1ms :: {"publicKey":"BJyzrSxzvZ1RVtMvUD8MtIfZakv…
+10:24:55 AM [express] GET /api/push/vapid-key 304 in 1ms :: {"publicKey":"BJyzrSxzvZ1RVtMvUD8MtIfZakv…
+10:24:55 AM [express] GET /api/push/status 304 in 13ms :: {"hasSubscription":true,"count":1}
+10:24:57 AM [express] GET /api/proxy-image 200 in 91ms
+ 

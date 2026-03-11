@@ -2160,13 +2160,17 @@ export interface DailyMissionContent {
 }
 
 export async function generateDailyMissionsWithAI(): Promise<Array<{ title: string; description: string; xpReward: number; type: string }> | null> {
-  if (isAIConfigured() && isQuotaLikelyAvailable()) {
-    const dayNames = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
-    const dayName = dayNames[new Date().getDay()];
-    const dateStr = new Date().toISOString().split('T')[0];
-    
-    const systemPrompt = "Você é um educador cristão criativo especializado em missões espirituais.";
-    const userPrompt = `Crie 3 missões espirituais ÚNICAS e VARIADAS para ${dayName} (${dateStr}).
+  if (!isAIConfigured()) {
+    console.log("[Daily Missions] AI not configured, cannot generate");
+    return null;
+  }
+  
+  const dayNames = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+  const dayName = dayNames[new Date().getDay()];
+  const dateStr = new Date().toISOString().split('T')[0];
+  
+  const systemPrompt = "Você é um educador cristão criativo especializado em missões espirituais.";
+  const userPrompt = `Crie 3 missões espirituais ÚNICAS e VARIADAS para ${dayName} (${dateStr}).
 
 REGRAS IMPORTANTES:
 - As missões devem ser DIFERENTES a cada dia
@@ -2182,51 +2186,47 @@ Formato JSON obrigatório:
     {"title": "título curto", "description": "descrição detalhada da missão", "xpReward": 50, "type": "hard"}
   ]
 }`;
-    
-    // Try each Gemini key (1-5) with model fallback
-    for (let keyNum = 1; keyNum <= 5; keyNum++) {
-      try {
-        const text = await generateWithGemini(systemPrompt, userPrompt, keyNum.toString());
-        const jsonMatch = text.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          const parsed = JSON.parse(jsonMatch[0]);
-          if (parsed.missions && parsed.missions.length >= 3) {
-            console.log(`[Daily Missions] Successfully generated with AI (key ${keyNum})`);
-            return parsed.missions;
-          }
-        }
-      } catch (error: any) {
-        if (isQuotaError(error)) {
-          console.log(`[Daily Missions] Key ${keyNum} quota exceeded, trying next...`);
-          continue;
-        } else {
-          console.error(`[Daily Missions] Key ${keyNum} error:`, error?.message);
+  
+  for (let keyNum = 1; keyNum <= 5; keyNum++) {
+    try {
+      console.log(`[Daily Missions] Trying key ${keyNum}...`);
+      const text = await generateWithGemini(systemPrompt, userPrompt, keyNum.toString());
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        if (parsed.missions && parsed.missions.length >= 3) {
+          console.log(`[Daily Missions] Successfully generated with AI (key ${keyNum})`);
+          return parsed.missions;
         }
       }
+      console.log(`[Daily Missions] Key ${keyNum} returned invalid format, trying next key...`);
+    } catch (error: any) {
+      if (isQuotaError(error)) {
+        console.log(`[Daily Missions] Key ${keyNum} quota exceeded, trying next key...`);
+        continue;
+      } else {
+        console.error(`[Daily Missions] Key ${keyNum} error:`, error?.message);
+        continue;
+      }
     }
-    
-    markQuotaExhausted();
-    console.log("[Daily Missions] All keys exhausted, using local fallback");
-  } else if (!isQuotaLikelyAvailable()) {
-    console.log("[Daily Missions] Skipping AI (quota cooldown), using local fallback");
   }
-
-  // Fallback: select 3 random missions (easy, medium, hard)
-  const shuffled = [...FALLBACK_MISSION_TEMPLATES].sort(() => Math.random() - 0.5);
-  const easy = shuffled.find(m => m.type === "easy") || FALLBACK_MISSION_TEMPLATES[0];
-  const medium = shuffled.find(m => m.type === "medium") || FALLBACK_MISSION_TEMPLATES[1];
-  const hard = shuffled.find(m => m.type === "hard") || FALLBACK_MISSION_TEMPLATES[2];
-  return [easy, medium, hard];
+  
+  console.error("[Daily Missions] FAILED - All keys exhausted, returning null (NO FALLBACK)");
+  return null;
 }
 
-export async function generateQuizQuestionsWithAI(count: number = 5): Promise<Array<{ question: string; options: string[]; correctIndex: number }> | null> {
+export async function generateQuizQuestionsWithAI(count: number = 5, recentQuestions: string[] = []): Promise<Array<{ question: string; options: string[]; correctIndex: number }> | null> {
   if (!isAIConfigured()) {
     console.log("[Quiz Questions] AI not configured, cannot generate");
     return null;
   }
   
   const dateStr = new Date().toISOString().split('T')[0];
-  const randomSeed = Math.floor(Math.random() * 1000);
+  const randomSeed = Math.floor(Math.random() * 10000);
+  
+  const recentContext = recentQuestions.length > 0
+    ? `\n\nPERGUNTAS JÁ USADAS RECENTEMENTE (NÃO REPITA nenhuma dessas):\n${recentQuestions.map((q, i) => `${i + 1}. ${q}`).join('\n')}`
+    : '';
   
   const systemPrompt = "Você é um especialista em estudos bíblicos e criador de quizzes.";
   const userPrompt = `Gere ${count} perguntas de quiz ÚNICAS e VARIADAS sobre a Bíblia.
@@ -2238,8 +2238,10 @@ REGRAS IMPORTANTES:
 - Varie entre Antigo e Novo Testamento equilibradamente
 - Inclua perguntas sobre: personagens, lugares, números, eventos, profecias, parábolas, genealogias
 - Evite perguntas muito fáceis ou repetitivas (não apenas "quem construiu a arca")
+- PROIBIDO repetir perguntas dos últimos dias
 - Cada pergunta deve ter exatamente 4 opções
 - A resposta correta NÃO deve ser sempre a opção 0 - varie o correctIndex
+${recentContext}
 
 Formato JSON (OBRIGATÓRIO):
 {
@@ -2278,55 +2280,62 @@ Formato JSON (OBRIGATÓRIO):
   return null;
 }
 
-export async function generateBibleFactWithAI(): Promise<{ fact: string; category: string }> {
-  if (isAIConfigured() && isQuotaLikelyAvailable()) {
-    const dateStr = new Date().toISOString().split('T')[0];
-    const randomSeed = Math.floor(Math.random() * 1000);
-    
-    const systemPrompt = "Você é um historiador bíblico especializado.";
-    const userPrompt = `Gere UMA curiosidade bíblica interessante e educativa.
+export async function generateBibleFactWithAI(recentFacts: string[] = []): Promise<{ fact: string; category: string } | null> {
+  if (!isAIConfigured()) {
+    console.log("[Bible Fact] AI not configured, cannot generate");
+    return null;
+  }
+  
+  const dateStr = new Date().toISOString().split('T')[0];
+  const randomSeed = Math.floor(Math.random() * 10000);
+  
+  const recentContext = recentFacts.length > 0
+    ? `\n\nCURIOSIDADES JÁ USADAS RECENTEMENTE (NÃO REPITA nenhuma dessas):\n${recentFacts.map((f, i) => `${i + 1}. ${f}`).join('\n')}`
+    : '';
+  
+  const systemPrompt = "Você é um historiador bíblico especializado.";
+  const userPrompt = `Gere UMA curiosidade bíblica interessante e educativa.
 
 REGRAS:
 - A curiosidade deve ser ÚNICA e pouco conhecida
-- Pode ser sobre: arqueologia, história, cultura, linguagem, geografia, personagens
+- Pode ser sobre: arqueologia, história, cultura, linguagem, geografia, personagens, costumes, manuscritos, traduções, números
 - Deve ser precisa e baseada em fatos
+- PROIBIDO repetir curiosidades dos últimos dias
 - Use seed ${randomSeed} para variedade (data: ${dateStr})
+${recentContext}
 
 Formato JSON:
 {
   "fact": "curiosidade interessante sobre a Bíblia",
   "category": "categoria (história/arqueologia/cultura/personagens/lugares/números)"
 }`;
-    
-    // Try each Gemini key (1-5) with model fallback
-    for (let keyNum = 1; keyNum <= 5; keyNum++) {
-      try {
-        const text = await generateWithGemini(systemPrompt, userPrompt, keyNum.toString());
-        const jsonMatch = text.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          const parsed = JSON.parse(jsonMatch[0]);
-          if (parsed.fact) {
-            console.log(`[Bible Fact] Successfully generated with AI (key ${keyNum})`);
-            return parsed;
-          }
-        }
-      } catch (error: any) {
-        if (isQuotaError(error)) {
-          console.log(`[Bible Fact] Key ${keyNum} quota exceeded, trying next...`);
-          continue;
-        } else {
-          console.error(`[Bible Fact] Key ${keyNum} error:`, error?.message);
+  
+  for (let keyNum = 1; keyNum <= 5; keyNum++) {
+    try {
+      console.log(`[Bible Fact] Trying key ${keyNum}...`);
+      const text = await generateWithGemini(systemPrompt, userPrompt, keyNum.toString());
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        if (parsed.fact) {
+          console.log(`[Bible Fact] Successfully generated with AI (key ${keyNum})`);
+          return parsed;
         }
       }
+      console.log(`[Bible Fact] Key ${keyNum} returned invalid format, trying next key...`);
+    } catch (error: any) {
+      if (isQuotaError(error)) {
+        console.log(`[Bible Fact] Key ${keyNum} quota exceeded, trying next key...`);
+        continue;
+      } else {
+        console.error(`[Bible Fact] Key ${keyNum} error:`, error?.message);
+        continue;
+      }
     }
-    
-    markQuotaExhausted();
-    console.log("[Bible Fact] All keys exhausted, using local fallback");
   }
-
-  // Fallback: select random fact from pool
-  const randomIndex = Math.floor(Math.random() * FALLBACK_BIBLE_FACTS.length);
-  return FALLBACK_BIBLE_FACTS[randomIndex];
+  
+  console.error("[Bible Fact] FAILED - All keys exhausted, returning null (NO FALLBACK)");
+  return null;
 }
 
 export { FALLBACK_QUIZ_QUESTIONS, FALLBACK_BIBLE_FACTS };
@@ -2924,14 +2933,18 @@ const FALLBACK_TIMED_QUIZ = [
   { question: "Quem escreveu a maioria dos Salmos?", options: ["Davi", "Salomão", "Moisés", "Asafe"], correctIndex: 0 },
 ];
 
-export async function generateBibleCharacterWithAI(): Promise<{ name: string; description: string; verse: string; fact: string } | null> {
+export async function generateBibleCharacterWithAI(recentCharacters: string[] = []): Promise<{ name: string; description: string; verse: string; fact: string } | null> {
   if (!isAIConfigured()) {
     console.log("[Bible Character] AI not configured, cannot generate");
     return null;
   }
   
   const dateStr = new Date().toISOString().split('T')[0];
-  const randomSeed = Math.floor(Math.random() * 1000);
+  const randomSeed = Math.floor(Math.random() * 10000);
+  
+  const recentContext = recentCharacters.length > 0
+    ? `\n\nPERSONAGENS JÁ USADOS RECENTEMENTE (NÃO REPITA nenhum desses):\n${recentCharacters.map((c, i) => `${i + 1}. ${c}`).join('\n')}`
+    : '';
   
   const systemPrompt = "Você é um estudioso bíblico especializado em personagens da Bíblia.";
   const userPrompt = `Gere informações sobre UM personagem bíblico para estudo diário.
@@ -2941,10 +2954,12 @@ REGRAS IMPORTANTES:
 - Use o seed ${randomSeed} para garantir variedade
 - Escolha entre TODOS os personagens bíblicos (Antigo e Novo Testamento)
 - Inclua personagens menos conhecidos (não apenas Moisés, Davi, Abraão)
-- Pode incluir: juízes, profetas menores, mulheres bíblicas, apóstolos, reis, etc.
+- Pode incluir: juízes, profetas menores, mulheres bíblicas, apóstolos, reis, sacerdotes, guerreiros, etc.
+- PROIBIDO repetir personagens dos últimos dias
 - A descrição deve ser breve (1-2 frases)
 - O versículo deve ser a referência mais importante sobre esse personagem
 - O fato curioso deve ser algo interessante e educativo
+${recentContext}
 
 Formato JSON (OBRIGATÓRIO):
 {
@@ -2984,13 +2999,21 @@ Formato JSON (OBRIGATÓRIO):
   return null;
 }
 
-export async function generateVerseMemoryWithAI(): Promise<{ reference: string; fullVerse: string; blanks: string[] }> {
-  if (isAIConfigured() && isQuotaLikelyAvailable()) {
-    const dateStr = new Date().toISOString().split('T')[0];
-    const randomSeed = Math.floor(Math.random() * 1000);
-    
-    const systemPrompt = "Você é um educador cristão especializado em memorização bíblica.";
-    const userPrompt = `Gere um versículo para memorização com palavras para preencher.
+export async function generateVerseMemoryWithAI(recentVerses: string[] = []): Promise<{ reference: string; fullVerse: string; blanks: string[] } | null> {
+  if (!isAIConfigured()) {
+    console.log("[Verse Memory] AI not configured, cannot generate");
+    return null;
+  }
+  
+  const dateStr = new Date().toISOString().split('T')[0];
+  const randomSeed = Math.floor(Math.random() * 10000);
+  
+  const recentContext = recentVerses.length > 0
+    ? `\n\nVERSÍCULOS JÁ USADOS RECENTEMENTE (NÃO REPITA nenhum desses):\n${recentVerses.map((v, i) => `${i + 1}. ${v}`).join('\n')}`
+    : '';
+  
+  const systemPrompt = "Você é um educador cristão especializado em memorização bíblica.";
+  const userPrompt = `Gere um versículo para memorização com palavras para preencher.
 
 REGRAS:
 - Escolha um versículo DIFERENTE a cada dia (use seed ${randomSeed}, data: ${dateStr})
@@ -2998,6 +3021,8 @@ REGRAS:
 - Selecione 3-5 palavras-chave importantes para serem as lacunas
 - As palavras devem ser significativas (substantivos, verbos, adjetivos importantes)
 - Use a versão ARA (Almeida Revista e Atualizada)
+- PROIBIDO repetir versículos dos últimos dias
+${recentContext}
 
 Formato JSON:
 {
@@ -3005,35 +3030,33 @@ Formato JSON:
   "fullVerse": "O versículo completo sem lacunas",
   "blanks": ["palavra1", "palavra2", "palavra3", "palavra4"]
 }`;
-    
-    for (let keyNum = 1; keyNum <= 5; keyNum++) {
-      try {
-        const text = await generateWithGemini(systemPrompt, userPrompt, keyNum.toString());
-        const jsonMatch = text.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          const parsed = JSON.parse(jsonMatch[0]);
-          if (parsed.reference && parsed.fullVerse && parsed.blanks && parsed.blanks.length >= 3) {
-            console.log(`[Verse Memory] Successfully generated with AI (key ${keyNum})`);
-            return parsed;
-          }
-        }
-      } catch (error: any) {
-        if (isQuotaError(error)) {
-          console.log(`[Verse Memory] Key ${keyNum} quota exceeded, trying next...`);
-          continue;
-        } else {
-          console.error(`[Verse Memory] Key ${keyNum} error:`, error?.message);
+  
+  for (let keyNum = 1; keyNum <= 5; keyNum++) {
+    try {
+      console.log(`[Verse Memory] Trying key ${keyNum}...`);
+      const text = await generateWithGemini(systemPrompt, userPrompt, keyNum.toString());
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        if (parsed.reference && parsed.fullVerse && parsed.blanks && parsed.blanks.length >= 3) {
+          console.log(`[Verse Memory] Successfully generated with AI (key ${keyNum})`);
+          return parsed;
         }
       }
+      console.log(`[Verse Memory] Key ${keyNum} returned invalid format, trying next key...`);
+    } catch (error: any) {
+      if (isQuotaError(error)) {
+        console.log(`[Verse Memory] Key ${keyNum} quota exceeded, trying next key...`);
+        continue;
+      } else {
+        console.error(`[Verse Memory] Key ${keyNum} error:`, error?.message);
+        continue;
+      }
     }
-    
-    markQuotaExhausted();
-    console.log("[Verse Memory] All keys exhausted, using local fallback");
   }
-
-  // Fallback: select random verse
-  const randomIndex = Math.floor(Math.random() * FALLBACK_VERSE_MEMORY.length);
-  return FALLBACK_VERSE_MEMORY[randomIndex];
+  
+  console.error("[Verse Memory] FAILED - All keys exhausted, returning null (NO FALLBACK)");
+  return null;
 }
 
 export interface GeneratedEventLesson {
@@ -3382,14 +3405,18 @@ Gere TODAS as 5 lições completas com ESSA ESTRUTURA EXATA.`;
   throw new Error("Não foi possível gerar o conteúdo. Todas as chaves de IA estão esgotadas.");
 }
 
-export async function generateTimedQuizWithAI(count: number = 5): Promise<Array<{ question: string; options: string[]; correctIndex: number }> | null> {
+export async function generateTimedQuizWithAI(count: number = 5, recentQuestions: string[] = []): Promise<Array<{ question: string; options: string[]; correctIndex: number }> | null> {
   if (!isAIConfigured()) {
     console.log("[Timed Quiz] AI not configured, cannot generate");
     return null;
   }
   
   const dateStr = new Date().toISOString().split('T')[0];
-  const randomSeed = Math.floor(Math.random() * 1000);
+  const randomSeed = Math.floor(Math.random() * 10000);
+  
+  const recentContext = recentQuestions.length > 0
+    ? `\n\nPERGUNTAS JÁ USADAS RECENTEMENTE (NÃO REPITA nenhuma dessas):\n${recentQuestions.map((q, i) => `${i + 1}. ${q}`).join('\n')}`
+    : '';
   
   const systemPrompt = "Você é um especialista em quizzes bíblicos rápidos e cronometrados.";
   const userPrompt = `Gere ${count} perguntas RÁPIDAS e OBJETIVAS para um quiz cronometrado.
@@ -3402,7 +3429,9 @@ REGRAS IMPORTANTES:
 - Cada pergunta deve poder ser respondida em menos de 5 segundos
 - Cada pergunta deve ter exatamente 4 opções curtas
 - A resposta correta NÃO deve ser sempre a opção 0 - varie o correctIndex
+- PROIBIDO repetir perguntas dos últimos dias
 - Inclua perguntas variadas (não apenas as óbvias como "quem construiu a arca")
+${recentContext}
 
 Formato JSON (OBRIGATÓRIO):
 {

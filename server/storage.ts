@@ -226,6 +226,7 @@ export interface IStorage {
   getUserMissionById(userId: number, missionId: number, date: string): Promise<any | null>;
   completeMission(userId: number, missionId: number, date: string): Promise<any | null>;
   getDailyMissionContent(date: string): Promise<any | null>;
+  getRecentMissionContent(days: number): Promise<any[]>;
   createDailyMissionContent(data: any): Promise<any>;
   initializeDailyMissions(): Promise<void>;
   
@@ -1772,15 +1773,27 @@ export class DatabaseStorage implements IStorage {
     
     const missions = await this.getDailyMissions();
     
-    // Shuffle missions using Fisher-Yates algorithm for true randomness
-    const shuffled = [...missions];
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    const guaranteedTypes = ['bible_fact', 'bible_character'];
+    const guaranteed: typeof missions = [];
+    const remaining: typeof missions = [];
+    const seenTypes = new Set<string>();
+    
+    for (const m of missions) {
+      if (guaranteedTypes.includes(m.type) && !seenTypes.has(m.type)) {
+        guaranteed.push(m);
+        seenTypes.add(m.type);
+      } else {
+        remaining.push(m);
+      }
     }
     
-    // Select 5 random missions
-    const selected = shuffled.slice(0, 5);
+    for (let i = remaining.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [remaining[i], remaining[j]] = [remaining[j], remaining[i]];
+    }
+    
+    const slotsLeft = Math.max(0, 5 - guaranteed.length);
+    const selected = [...guaranteed, ...remaining.slice(0, slotsLeft)].slice(0, 5);
     
     for (const mission of selected) {
       await db.insert(schema.userDailyMissions).values({
@@ -1878,9 +1891,27 @@ export class DatabaseStorage implements IStorage {
     return content || null;
   }
 
+  async getRecentMissionContent(days: number): Promise<any[]> {
+    const results = await db.select().from(schema.dailyMissionContent)
+      .orderBy(desc(schema.dailyMissionContent.contentDate))
+      .limit(days);
+    return results;
+  }
+
   async createDailyMissionContent(data: any): Promise<any> {
     const [content] = await db.insert(schema.dailyMissionContent)
       .values(data)
+      .onConflictDoUpdate({
+        target: schema.dailyMissionContent.contentDate,
+        set: {
+          aiGeneratedMissions: data.aiGeneratedMissions,
+          quizQuestions: data.quizQuestions,
+          bibleFact: data.bibleFact,
+          bibleCharacter: data.bibleCharacter,
+          verseMemory: data.verseMemory,
+          timedQuizQuestions: data.timedQuizQuestions,
+        },
+      })
       .returning();
     return content;
   }

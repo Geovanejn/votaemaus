@@ -966,12 +966,15 @@ async function refreshDailyMissionsWithAI(): Promise<void> {
         const timedQuizData = JSON.parse(existingContent.timedQuizQuestions || '[]');
         const characterData = JSON.parse(existingContent.bibleCharacter || '{}');
         
+        const factData = JSON.parse(existingContent.bibleFact || '{}');
+        
         // If any critical content is missing, regenerate
-        if (!quizData.length || !timedQuizData.length || !characterData.name) {
+        if (!quizData.length || !timedQuizData.length || !characterData.name || !factData.fact) {
           console.log(`[Daily Missions Scheduler] Content for ${today} is incomplete, regenerating...`);
           console.log(`  - Quiz: ${quizData.length} questions`);
           console.log(`  - Timed Quiz: ${timedQuizData.length} questions`);
           console.log(`  - Character: ${characterData.name || 'MISSING'}`);
+          console.log(`  - Fact: ${factData.fact ? 'OK' : 'MISSING'}`);
           needsRegeneration = true;
         }
       } catch (e) {
@@ -1001,43 +1004,97 @@ async function refreshDailyMissionsWithAI(): Promise<void> {
     
     const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
     
-    // Generate content - each AI function handles key rotation and model fallback internally
+    // Fetch recent content for deduplication (last 14 days)
+    console.log('[Daily Missions Scheduler] Fetching recent content for deduplication...');
+    const recentContent = await storage.getRecentMissionContent(14);
+    
+    const recentFacts: string[] = [];
+    const recentCharacters: string[] = [];
+    const recentQuizQuestions: string[] = [];
+    const recentTimedQuestions: string[] = [];
+    const recentVerses: string[] = [];
+    
+    for (const content of recentContent) {
+      try {
+        if (content.bibleFact) {
+          const parsed = JSON.parse(content.bibleFact);
+          if (parsed.fact) recentFacts.push(parsed.fact);
+        }
+      } catch (e) {}
+      try {
+        if (content.bibleCharacter) {
+          const parsed = JSON.parse(content.bibleCharacter);
+          if (parsed.name) recentCharacters.push(parsed.name);
+        }
+      } catch (e) {}
+      try {
+        if (content.quizQuestions) {
+          const parsed = JSON.parse(content.quizQuestions);
+          if (Array.isArray(parsed)) {
+            for (const q of parsed.slice(0, 5)) {
+              if (q.question) recentQuizQuestions.push(q.question);
+            }
+          }
+        }
+      } catch (e) {}
+      try {
+        if (content.timedQuizQuestions) {
+          const parsed = JSON.parse(content.timedQuizQuestions);
+          if (Array.isArray(parsed)) {
+            for (const q of parsed.slice(0, 5)) {
+              if (q.question) recentTimedQuestions.push(q.question);
+            }
+          }
+        }
+      } catch (e) {}
+      try {
+        if (content.verseMemory) {
+          const parsed = JSON.parse(content.verseMemory);
+          if (parsed.reference) recentVerses.push(parsed.reference);
+        }
+      } catch (e) {}
+    }
+    
+    console.log(`[Daily Missions Scheduler] Dedup context: ${recentFacts.length} facts, ${recentCharacters.length} characters, ${recentQuizQuestions.length} quiz Qs, ${recentTimedQuestions.length} timed Qs, ${recentVerses.length} verses`);
+    
+    // Generate content with dedup context
     console.log('[Daily Missions Scheduler] Generating AI Missions...');
     const aiMissions = await generateDailyMissionsWithAI();
     await delay(1000);
     
     console.log('[Daily Missions Scheduler] Generating Quiz Questions...');
-    const quizQuestions = await generateQuizQuestionsWithAI(10);
+    const quizQuestions = await generateQuizQuestionsWithAI(10, recentQuizQuestions);
     await delay(1000);
     
     console.log('[Daily Missions Scheduler] Generating Bible Fact...');
-    const bibleFact = await generateBibleFactWithAI();
+    const bibleFact = await generateBibleFactWithAI(recentFacts);
     await delay(1000);
     
     console.log('[Daily Missions Scheduler] Generating Bible Character...');
-    const bibleCharacter = await generateBibleCharacterWithAI();
+    const bibleCharacter = await generateBibleCharacterWithAI(recentCharacters);
     await delay(1000);
     
     console.log('[Daily Missions Scheduler] Generating Verse Memory...');
-    const verseMemory = await generateVerseMemoryWithAI();
+    const verseMemory = await generateVerseMemoryWithAI(recentVerses);
     await delay(1000);
     
     console.log('[Daily Missions Scheduler] Generating Timed Quiz...');
-    const timedQuizQuestions = await generateTimedQuizWithAI(10);
+    const timedQuizQuestions = await generateTimedQuizWithAI(10, recentTimedQuestions);
     
     // Check if critical content was generated successfully
     const hasQuiz = quizQuestions && quizQuestions.length >= 5;
     const hasTimedQuiz = timedQuizQuestions && timedQuizQuestions.length >= 5;
     const hasCharacter = bibleCharacter && bibleCharacter.name;
+    const hasFact = bibleFact && bibleFact.fact;
     
     // NEVER save incomplete data - abort if any critical content is missing
-    if (!hasQuiz || !hasTimedQuiz || !hasCharacter) {
+    if (!hasQuiz || !hasTimedQuiz || !hasCharacter || !hasFact) {
       console.error('[Daily Missions Scheduler] CRITICAL: Failed to generate essential content!');
       console.error(`  - Quiz: ${hasQuiz ? 'OK' : 'FAILED'}`);
       console.error(`  - Timed Quiz: ${hasTimedQuiz ? 'OK' : 'FAILED'}`);
       console.error(`  - Bible Character: ${hasCharacter ? 'OK' : 'FAILED'}`);
+      console.error(`  - Bible Fact: ${hasFact ? 'OK' : 'FAILED'}`);
       console.error('[Daily Missions Scheduler] NOT saving incomplete content - will retry on next schedule');
-      // Do NOT save anything - return without persisting
       return;
     }
     
@@ -1053,7 +1110,7 @@ async function refreshDailyMissionsWithAI(): Promise<void> {
       contentDate: today,
       aiGeneratedMissions: JSON.stringify(aiMissions || []),
       quizQuestions: JSON.stringify(quizQuestions),
-      bibleFact: JSON.stringify(bibleFact || {}),
+      bibleFact: JSON.stringify(bibleFact),
       bibleCharacter: JSON.stringify(bibleCharacter),
       verseMemory: JSON.stringify(verseMemory || {}),
       timedQuizQuestions: JSON.stringify(timedQuizQuestions),
@@ -1062,7 +1119,7 @@ async function refreshDailyMissionsWithAI(): Promise<void> {
     console.log(`[Daily Missions Scheduler] Successfully saved content for ${today}:`);
     console.log(`  - AI Missions: ${aiMissions?.length || 0}`);
     console.log(`  - Quiz questions: ${quizQuestions.length}`);
-    console.log(`  - Bible fact: ${bibleFact?.fact ? 'Yes' : 'No'}`);
+    console.log(`  - Bible fact: ${bibleFact.fact ? 'Yes' : 'No'}`);
     console.log(`  - Bible character: ${bibleCharacter.name}`);
     console.log(`  - Verse memory: ${verseMemory?.reference || 'No'}`);
     console.log(`  - Timed quiz: ${timedQuizQuestions.length} questions`);

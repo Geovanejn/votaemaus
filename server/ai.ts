@@ -1923,33 +1923,42 @@ Respond ONLY in JSON:
 }
 
 export async function fetchContextualVerseImage(query: string, usedImageUrls: string[]): Promise<{ imageUrl: string; imageBuffer: Buffer } | null> {
-  const encodedQuery = encodeURIComponent(query + " inspirational");
-  const pageVariants = Array.from({ length: 5 }, (_, i) => i + 1);
+  const pexelsKey = process.env.PEXELS_API_KEY;
+  if (!pexelsKey) {
+    console.warn('[Verse Image] PEXELS_API_KEY not configured');
+    return null;
+  }
+
+  const encodedQuery = encodeURIComponent(query);
+  const pageVariants = Array.from({ length: 3 }, (_, i) => i + 1);
 
   for (const page of pageVariants) {
     try {
-      const searchUrl = `https://unsplash.com/napi/search/photos?query=${encodedQuery}&per_page=10&page=${page}&orientation=landscape`;
+      const searchUrl = `https://api.pexels.com/v1/search?query=${encodedQuery}&per_page=15&page=${page}&orientation=landscape&size=large`;
       const response = await fetch(searchUrl, {
         headers: {
-          'Accept': 'application/json',
-          'Accept-Language': 'en-US,en;q=0.9',
+          'Authorization': pexelsKey,
         }
       });
 
       if (!response.ok) {
-        console.warn(`[Verse Image] Unsplash search failed (${response.status}), trying fallback...`);
-        break;
+        console.warn(`[Verse Image] Pexels search failed (${response.status})`);
+        if (response.status === 429) {
+          console.warn('[Verse Image] Pexels rate limit reached');
+          break;
+        }
+        continue;
       }
 
       const data = await response.json();
-      const results = data.results || [];
+      const photos = data.photos || [];
 
-      for (const photo of results) {
-        const photoUrl = photo.urls?.regular || photo.urls?.full;
-        const photoId = photo.id;
+      for (const photo of photos) {
+        const photoUrl = photo.src?.large2x || photo.src?.large || photo.src?.original;
+        const photoId = String(photo.id);
 
         if (!photoUrl) continue;
-        if (usedImageUrls.some(used => used.includes(photoId))) continue;
+        if (usedImageUrls.some(used => used.includes(photoId) || used.includes(photoUrl))) continue;
 
         try {
           const imgResponse = await fetch(photoUrl);
@@ -1960,33 +1969,16 @@ export async function fetchContextualVerseImage(query: string, usedImageUrls: st
 
           if (imageBuffer.length < 10000) continue;
 
-          console.log(`[Verse Image] Found image: ${photoId} (${photoUrl.substring(0, 80)}...)`);
-          return { imageUrl: photoUrl, imageBuffer };
+          const sourceIdentifier = `pexels:${photoId}:${photoUrl}`;
+          console.log(`[Verse Image] Found Pexels image: ${photoId} (${photo.photographer})`);
+          return { imageUrl: sourceIdentifier, imageBuffer };
         } catch {
           continue;
         }
       }
     } catch (error) {
-      console.warn(`[Verse Image] Search page ${page} error:`, error);
+      console.warn(`[Verse Image] Pexels search page ${page} error:`, error);
     }
-  }
-
-  try {
-    const directUrl = `https://source.unsplash.com/1200x800/?${encodedQuery}&sig=${Date.now()}`;
-    const response = await fetch(directUrl, { redirect: 'follow' });
-    if (response.ok) {
-      const arrayBuffer = await response.arrayBuffer();
-      const imageBuffer = Buffer.from(arrayBuffer);
-      if (imageBuffer.length > 10000) {
-        const finalUrl = response.url;
-        if (!usedImageUrls.some(used => used === finalUrl)) {
-          console.log(`[Verse Image] Using source.unsplash.com fallback`);
-          return { imageUrl: finalUrl, imageBuffer };
-        }
-      }
-    }
-  } catch (error) {
-    console.warn(`[Verse Image] Source fallback error:`, error);
   }
 
   console.error(`[Verse Image] Could not find contextual image for query: "${query}"`);

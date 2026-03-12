@@ -161,6 +161,14 @@ export default function PedidoCompartilhado() {
   const [showNotifPopup, setShowNotifPopup] = useState(false);
   const notifPromptShown = useRef(false);
 
+  // Detect iOS Safari outside of PWA mode — Web Push is only supported on iOS 16.4+
+  // when the app is added to the Home Screen (standalone/PWA mode).
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const isPWA = (navigator as Navigator & { standalone?: boolean }).standalone === true ||
+    window.matchMedia('(display-mode: standalone)').matches;
+  const isIOSSafariNonPWA = isIOS && !isPWA;
+
   const { data, isLoading, error, refetch } = useQuery<{ order: SharedOrder }>({
     queryKey: ["/api/shop/orders/share", token],
     queryFn: async () => {
@@ -421,30 +429,43 @@ export default function PedidoCompartilhado() {
               </button>
             </div>
             <h3 className="text-lg font-bold text-gray-100 mb-1">
-              Ative as notificações
+              {isIOSSafariNonPWA ? "Notificações no iPhone" : "Ative as notificações"}
             </h3>
             <p className="text-sm text-gray-400 mb-5">
-              Receba alertas quando seu pagamento for confirmado, quando o pedido entrar em produção e quando estiver pronto para retirada.
+              {isIOSSafariNonPWA
+                ? "No iPhone, as notificações só funcionam quando o site é adicionado à tela inicial."
+                : "Receba alertas quando seu pagamento for confirmado, quando o pedido entrar em produção e quando estiver pronto para retirada."}
             </p>
-            <Button
-              onClick={subscribeToPush}
-              disabled={notificationState === "subscribing"}
-              className="w-full h-12 bg-amber-500 hover:bg-amber-600 text-white font-semibold rounded-xl"
-              data-testid="button-popup-enable-notifications"
-            >
-              {notificationState === "subscribing" ? (
-                <Loader2 className="w-5 h-5 animate-spin mr-2" />
-              ) : (
-                <Bell className="w-5 h-5 mr-2" />
-              )}
-              Ativar notificações
-            </Button>
+            {isIOSSafariNonPWA ? (
+              <div className="bg-gray-700/60 rounded-xl p-4 mb-2 text-sm text-gray-200 space-y-2">
+                <p className="font-semibold text-amber-400">Como ativar:</p>
+                <ol className="list-decimal list-inside space-y-1 text-gray-300">
+                  <li>Toque no ícone <span className="font-bold text-white">Compartilhar</span> (quadrado com seta ↑) no Safari</li>
+                  <li>Selecione <span className="font-bold text-white">"Adicionar à Tela de Início"</span></li>
+                  <li>Abra o app pela tela inicial e ative as notificações</li>
+                </ol>
+              </div>
+            ) : (
+              <Button
+                onClick={subscribeToPush}
+                disabled={notificationState === "subscribing"}
+                className="w-full h-12 bg-amber-500 hover:bg-amber-600 text-white font-semibold rounded-xl"
+                data-testid="button-popup-enable-notifications"
+              >
+                {notificationState === "subscribing" ? (
+                  <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                ) : (
+                  <Bell className="w-5 h-5 mr-2" />
+                )}
+                Ativar notificações
+              </Button>
+            )}
             <button 
               onClick={() => setShowNotifPopup(false)}
               className="w-full mt-3 text-sm text-gray-500 hover:text-gray-300 transition-colors py-2"
               data-testid="button-dismiss-notif-popup"
             >
-              Agora não
+              {isIOSSafariNonPWA ? "Fechar" : "Agora não"}
             </button>
           </div>
         </div>

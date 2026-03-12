@@ -442,6 +442,55 @@ export default function VersiculoDoDiaPage() {
       }
       
       offscreenContainer.appendChild(clonedCard);
+
+      // Fix background image: ensure it's properly cropped to 9:16 regardless of timing.
+      // croppedBgDataUrl may not be ready if user clicked share before pre-crop finished,
+      // or if CORS blocked it. html2canvas cannot replicate object-fit:cover so we must
+      // always inject a pre-cropped data URL into the clone before capture.
+      const bgImgInClone = clonedCard.querySelector('img') as HTMLImageElement | null;
+      if (bgImgInClone && proxyImageUrl) {
+        const currentSrc = bgImgInClone.getAttribute('src') || '';
+        const alreadyCropped = currentSrc.startsWith('data:');
+        const dataUrlToUse = alreadyCropped ? currentSrc : await new Promise<string | null>((resolve) => {
+          const tempImg = new Image();
+          tempImg.crossOrigin = 'anonymous';
+          tempImg.onload = () => {
+            const targetAspect = cardWidth / cardHeight;
+            const imgAspect = tempImg.naturalWidth / tempImg.naturalHeight;
+            let srcX = 0, srcY = 0, srcW = tempImg.naturalWidth, srcH = tempImg.naturalHeight;
+            if (imgAspect > targetAspect) {
+              srcW = Math.round(tempImg.naturalHeight * targetAspect);
+              srcX = Math.round((tempImg.naturalWidth - srcW) / 2);
+            } else {
+              srcH = Math.round(tempImg.naturalWidth / targetAspect);
+              srcY = Math.round((tempImg.naturalHeight - srcH) / 2);
+            }
+            const cropCanvas = document.createElement('canvas');
+            cropCanvas.width = cardWidth;
+            cropCanvas.height = cardHeight;
+            const cropCtx = cropCanvas.getContext('2d');
+            if (cropCtx) {
+              cropCtx.imageSmoothingEnabled = true;
+              cropCtx.imageSmoothingQuality = 'high';
+              cropCtx.drawImage(tempImg, srcX, srcY, srcW, srcH, 0, 0, cardWidth, cardHeight);
+              resolve(cropCanvas.toDataURL('image/png'));
+            } else {
+              resolve(null);
+            }
+          };
+          tempImg.onerror = () => resolve(null);
+          tempImg.src = proxyImageUrl;
+        });
+        if (dataUrlToUse) {
+          bgImgInClone.src = dataUrlToUse;
+          bgImgInClone.style.objectFit = 'fill';
+          bgImgInClone.style.width = '100%';
+          bgImgInClone.style.height = '100%';
+          bgImgInClone.style.position = 'absolute';
+          bgImgInClone.style.inset = '0';
+          bgImgInClone.style.display = 'block';
+        }
+      }
       
       // Wait for fonts to be fully loaded (ensures bold text renders correctly)
       if (document.fonts && document.fonts.ready) {
@@ -722,6 +771,55 @@ export default function VersiculoDoDiaPage() {
       }
       
       offscreenContainer.appendChild(clonedCard);
+
+      // Fix background image: ensure it's properly cropped to 9:16 regardless of timing.
+      // croppedBgDataUrl may not be ready if user clicked share before pre-crop finished,
+      // or if CORS blocked it. html2canvas cannot replicate object-fit:cover so we must
+      // always inject a pre-cropped data URL into the clone before capture.
+      const bgImgInClone = clonedCard.querySelector('img') as HTMLImageElement | null;
+      if (bgImgInClone && proxyImageUrl) {
+        const currentSrc = bgImgInClone.getAttribute('src') || '';
+        const alreadyCropped = currentSrc.startsWith('data:');
+        const dataUrlToUse = alreadyCropped ? currentSrc : await new Promise<string | null>((resolve) => {
+          const tempImg = new Image();
+          tempImg.crossOrigin = 'anonymous';
+          tempImg.onload = () => {
+            const targetAspect = cardWidth / cardHeight;
+            const imgAspect = tempImg.naturalWidth / tempImg.naturalHeight;
+            let srcX = 0, srcY = 0, srcW = tempImg.naturalWidth, srcH = tempImg.naturalHeight;
+            if (imgAspect > targetAspect) {
+              srcW = Math.round(tempImg.naturalHeight * targetAspect);
+              srcX = Math.round((tempImg.naturalWidth - srcW) / 2);
+            } else {
+              srcH = Math.round(tempImg.naturalWidth / targetAspect);
+              srcY = Math.round((tempImg.naturalHeight - srcH) / 2);
+            }
+            const cropCanvas = document.createElement('canvas');
+            cropCanvas.width = cardWidth;
+            cropCanvas.height = cardHeight;
+            const cropCtx = cropCanvas.getContext('2d');
+            if (cropCtx) {
+              cropCtx.imageSmoothingEnabled = true;
+              cropCtx.imageSmoothingQuality = 'high';
+              cropCtx.drawImage(tempImg, srcX, srcY, srcW, srcH, 0, 0, cardWidth, cardHeight);
+              resolve(cropCanvas.toDataURL('image/png'));
+            } else {
+              resolve(null);
+            }
+          };
+          tempImg.onerror = () => resolve(null);
+          tempImg.src = proxyImageUrl;
+        });
+        if (dataUrlToUse) {
+          bgImgInClone.src = dataUrlToUse;
+          bgImgInClone.style.objectFit = 'fill';
+          bgImgInClone.style.width = '100%';
+          bgImgInClone.style.height = '100%';
+          bgImgInClone.style.position = 'absolute';
+          bgImgInClone.style.inset = '0';
+          bgImgInClone.style.display = 'block';
+        }
+      }
       
       // Wait for fonts to be fully loaded (ensures bold text renders correctly)
       if (document.fonts && document.fonts.ready) {

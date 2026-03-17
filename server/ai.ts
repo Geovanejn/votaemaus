@@ -1857,7 +1857,7 @@ Responda APENAS em formato JSON:
   }
 }
 
-export async function generateVerseImageQuery(verse: string, reference: string): Promise<{ query: string; context: string } | null> {
+export async function generateVerseImageQuery(verse: string, reference: string): Promise<{ queries: string[]; context: string } | null> {
   if (!isAIConfigured()) return null;
 
   const geminiKeys = ["1", "2", "3", "4", "5"];
@@ -1868,35 +1868,42 @@ export async function generateVerseImageQuery(verse: string, reference: string):
       try {
         const selectedModel = getGeminiModel(key, modelName);
 
-        const prompt = `You are an expert at understanding biblical context and selecting appropriate imagery.
+        const prompt = `You are an expert at understanding biblical context and selecting appropriate Christian imagery for a Protestant evangelical devotional app.
 
-Analyze this Bible verse and generate a search query for finding a stock photo that visually represents its spiritual theme.
+Analyze this Bible verse and generate 3 DIFFERENT search queries for finding stock photos that visually represent its spiritual theme.
 
 Verse: "${verse}"
 Reference: ${reference}
 
-RULES:
-1. Identify the CORE SPIRITUAL THEME (e.g., prayer, worship, sacrifice, hope, nature's beauty, forgiveness, strength, peace, guidance, faith, love, grace, salvation, comfort, trust)
-2. Generate a search query in ENGLISH that describes a REAL PHOTOGRAPH (not illustration) matching the theme
-3. The image should be INSPIRATIONAL and BEAUTIFUL - suitable as a background for a devotional app
-4. Be SPECIFIC about the scene. Examples:
-   - Prayer theme → "person praying hands clasped peaceful light"
-   - Worship theme → "person arms raised mountain sunrise worship"
-   - Cross/sacrifice → "wooden cross hilltop dramatic sky sunrise"
-   - Hope/light → "sunlight breaking through dark clouds golden rays"
-   - Peace/rest → "calm lake mountains reflection peaceful morning"
-   - Nature/creation → "majestic mountain landscape golden hour"
-   - Guidance/path → "winding path through forest sunlight trees"
-   - Strength → "person standing cliff edge overlooking vast landscape"
-   - Love/community → "group people holding hands sunset silhouette"
-   - Forgiveness/grace → "open hands receiving light warm golden"
-5. NEVER include text, logos, or watermarks in the description
-6. Prefer outdoor, nature, or atmospheric scenes with good lighting
-7. The query must be 4-8 words, focused and specific
+STRICT RULES — MUST FOLLOW:
+1. Identify the CORE SPIRITUAL THEME (e.g., prayer, worship, hope, nature's beauty, forgiveness, strength, peace, guidance, faith, love, grace, comfort, trust)
+2. Generate 3 DIFFERENT queries — each must take a DIFFERENT visual angle:
+   - Query 1: PERSON scene (person/people interacting with nature or light in a Christian posture)
+   - Query 2: LANDSCAPE/NATURE scene (scenery that evokes the theme — no people)
+   - Query 3: LIGHT/ABSTRACT scene (dramatic lighting, rays of light, sky, atmosphere)
+3. ALL queries must return SAFE, UNIVERSAL, CHRISTIAN-COMPATIBLE photos
+4. STRICTLY FORBIDDEN in any query: shells, beads, candles, altars, ritual objects, incense, statues, idols, runes, crystals, tarot, any non-Christian religious symbol or artifact, búzios, macumba, candomblé, terreiro, rosary (Catholic objects), Buddhist symbols, Hindu symbols, Islamic symbols
+5. SAFE vocabulary to use: sunrise, sunset, mountain, forest, ocean waves, field, path, light rays, open sky, clouds, cross, hands, person praying, arms raised, dove, water, river, valley, meadow, peaceful, golden light, dramatic sky
+6. Each query must be 4-8 words, in ENGLISH, focused and specific
+7. Do NOT repeat the same visual subject across the 3 queries
+
+Examples for worship theme:
+- "person arms raised hilltop golden sunrise"
+- "vast mountain valley dramatic morning light"
+- "golden rays breaking through dark storm clouds"
+
+Examples for hope theme:
+- "person standing cliff edge vast landscape dawn"
+- "lone tree field dramatic light rays"
+- "sunbeam breaking through dark clouds sea"
 
 Respond ONLY in JSON:
 {
-  "query": "english search query 4-8 words",
+  "queries": [
+    "query one 4-8 words person scene",
+    "query two 4-8 words landscape scene",
+    "query three 4-8 words light scene"
+  ],
   "context": "one word theme in portuguese (e.g., oração, adoração, esperança, paz, força)"
 }`;
 
@@ -1907,9 +1914,11 @@ Respond ONLY in JSON:
         if (!jsonMatch) continue;
 
         const parsed = JSON.parse(jsonMatch[0]);
-        if (parsed.query && parsed.context) {
-          console.log(`[Verse Image] Context: "${parsed.context}" → Query: "${parsed.query}"`);
-          return { query: parsed.query, context: parsed.context };
+        if (Array.isArray(parsed.queries) && parsed.queries.length >= 1 && parsed.context) {
+          const queries = parsed.queries.filter((q: any) => typeof q === 'string' && q.trim().length > 0);
+          if (queries.length === 0) continue;
+          console.log(`[Verse Image] Context: "${parsed.context}" → ${queries.length} queries: ${queries.join(' | ')}`);
+          return { queries, context: parsed.context };
         }
       } catch (error: any) {
         if (error?.status === 429 || error?.message?.includes('quota')) continue;

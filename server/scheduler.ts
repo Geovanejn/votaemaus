@@ -558,7 +558,7 @@ async function getContextualVerseImage(verse: string, reference: string): Promis
   try {
     const queryResult = await generateVerseImageQuery(verse, reference);
     if (!queryResult) {
-      console.log('[Daily Verse] AI could not generate image query, falling back to stock');
+      console.log('[Daily Verse] AI could not generate image queries, falling back to stock');
       return null;
     }
 
@@ -567,23 +567,32 @@ async function getContextualVerseImage(verse: string, reference: string): Promis
       .map(p => (p as any).imageSourceUrl || p.imageUrl)
       .filter((url): url is string => !!url);
 
-    const imageResult = await fetchContextualVerseImage(queryResult.query, usedSourceUrls);
-    if (!imageResult) {
-      console.log('[Daily Verse] Could not fetch contextual image, falling back to stock');
-      return null;
+    // Try each query in order until one returns a fresh (non-duplicate) image
+    for (let i = 0; i < queryResult.queries.length; i++) {
+      const query = queryResult.queries[i];
+      console.log(`[Daily Verse] Trying query ${i + 1}/${queryResult.queries.length}: "${query}"`);
+
+      const imageResult = await fetchContextualVerseImage(query, usedSourceUrls);
+      if (!imageResult) {
+        console.log(`[Daily Verse] Query ${i + 1} returned no new image, trying next...`);
+        continue;
+      }
+
+      const sourceUrl = imageResult.imageUrl;
+
+      const { isR2Configured, uploadToR2 } = await import('./r2-storage');
+      if (isR2Configured()) {
+        const filename = `verse-contextual-${Date.now()}.jpg`;
+        const r2Url = await uploadToR2(imageResult.imageBuffer, 'verses' as any, 'image/jpeg', filename);
+        console.log(`[Daily Verse] Contextual image uploaded to R2: ${r2Url} (query ${i + 1})`);
+        return { imageUrl: r2Url, sourceUrl };
+      } else {
+        return { imageUrl: sourceUrl, sourceUrl };
+      }
     }
 
-    const sourceUrl = imageResult.imageUrl;
-
-    const { isR2Configured, uploadToR2 } = await import('./r2-storage');
-    if (isR2Configured()) {
-      const filename = `verse-contextual-${Date.now()}.jpg`;
-      const r2Url = await uploadToR2(imageResult.imageBuffer, 'verses' as any, 'image/jpeg', filename);
-      console.log(`[Daily Verse] Contextual image uploaded to R2: ${r2Url}`);
-      return { imageUrl: r2Url, sourceUrl };
-    } else {
-      return { imageUrl: sourceUrl, sourceUrl };
-    }
+    console.log('[Daily Verse] All contextual queries exhausted, falling back to stock');
+    return null;
   } catch (error) {
     console.error('[Daily Verse] Error getting contextual image:', error);
     return null;

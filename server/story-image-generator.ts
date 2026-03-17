@@ -324,7 +324,7 @@ export async function generateBirthdayStoryImage(
   const firstName = birthdayData.firstName.charAt(0).toUpperCase() + 
                     birthdayData.firstName.slice(1).toLowerCase();
   
-  const nameY = templateHeight * (1 - 0.275);
+  const nameY = templateHeight * (1 - 0.275) - 10;
   ctx.fillText(firstName, templateWidth / 2, nameY);
   
   const finalCanvas = createCanvas(finalWidth, finalHeight);

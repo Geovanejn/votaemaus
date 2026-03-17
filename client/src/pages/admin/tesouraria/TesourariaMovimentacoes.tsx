@@ -236,6 +236,19 @@ export default function TesourariaMovimentacoes() {
     },
   });
 
+  const markOrderPaidMutation = useMutation({
+    mutationFn: async ({ orderId, status }: { orderId: number; status: "paid" | "pending" }) => {
+      return apiRequest("PATCH", `/api/treasury/shop/orders/${orderId}/mark-paid`, { status });
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/treasury/shop/orders"] });
+      toast({ title: variables.status === "paid" ? "Pedido marcado como pago" : "Pagamento revertido" });
+    },
+    onError: () => {
+      toast({ title: "Erro ao atualizar pedido", variant: "destructive" });
+    },
+  });
+
   const notifyOverdueMutation = useMutation({
     mutationFn: async () => {
       const res = await apiRequest("POST", "/api/treasury/shop/notify-overdue", {});
@@ -962,32 +975,75 @@ export default function TesourariaMovimentacoes() {
                               </Card>
                             </div>
 
-                            {order.isManualOrder && order.paymentStatus !== "paid" && order.installments.length === 0 && (
+                            {order.installments.length === 0 && (
                               <Card>
                                 <CardContent className="p-4">
                                   <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                                     <div>
                                       <h4 className="font-medium flex items-center gap-2">
-                                        <QrCode className="h-4 w-4" />
-                                        Pagamento PIX
+                                        <CreditCard className="h-4 w-4" />
+                                        Pagamento Único
                                       </h4>
                                       <p className="text-sm text-muted-foreground">
-                                        Gere o QR Code para pagamento do valor total
+                                        {order.paymentStatus === "paid"
+                                          ? "Pagamento confirmado"
+                                          : "Confirme o recebimento manualmente ou gere um PIX"}
                                       </p>
                                     </div>
-                                    <Button
-                                      onClick={() => generatePix(order.id)}
-                                      disabled={pixLoading}
-                                      data-testid={`button-generate-pix-total-${order.id}`}
-                                    >
-                                      {pixLoading ? (
-                                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                    <div className="flex gap-2 flex-wrap justify-end">
+                                      {order.paymentStatus === "paid" ? (
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          onClick={() => markOrderPaidMutation.mutate({ orderId: order.id, status: "pending" })}
+                                          disabled={markOrderPaidMutation.isPending}
+                                          data-testid={`button-revert-order-paid-${order.id}`}
+                                        >
+                                          {markOrderPaidMutation.isPending ? (
+                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                          ) : (
+                                            <>
+                                              <Undo2 className="h-4 w-4 sm:hidden" />
+                                              <span className="hidden sm:inline">Desfazer</span>
+                                            </>
+                                          )}
+                                        </Button>
                                       ) : (
-                                        <QrCode className="h-4 w-4 mr-2" />
+                                        <>
+                                          {order.isManualOrder && (
+                                            <Button
+                                              size="sm"
+                                              variant="outline"
+                                              onClick={() => generatePix(order.id)}
+                                              disabled={pixLoading}
+                                              data-testid={`button-generate-pix-total-${order.id}`}
+                                            >
+                                              {pixLoading ? (
+                                                <Loader2 className="h-4 w-4 animate-spin" />
+                                              ) : (
+                                                <QrCode className="h-4 w-4" />
+                                              )}
+                                              <span className="hidden sm:inline ml-1">PIX</span>
+                                            </Button>
+                                          )}
+                                          <Button
+                                            size="sm"
+                                            onClick={() => markOrderPaidMutation.mutate({ orderId: order.id, status: "paid" })}
+                                            disabled={markOrderPaidMutation.isPending}
+                                            data-testid={`button-mark-order-paid-${order.id}`}
+                                          >
+                                            {markOrderPaidMutation.isPending ? (
+                                              <Loader2 className="h-4 w-4 animate-spin" />
+                                            ) : (
+                                              <>
+                                                <CheckCircle className="h-4 w-4 sm:hidden" />
+                                                <span className="hidden sm:inline">Marcar Pago</span>
+                                              </>
+                                            )}
+                                          </Button>
+                                        </>
                                       )}
-                                      <span className="hidden sm:inline">Gerar PIX</span>
-                                      <span className="sm:hidden">PIX</span>
-                                    </Button>
+                                    </div>
                                   </div>
                                 </CardContent>
                               </Card>

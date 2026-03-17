@@ -16349,6 +16349,89 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Manually mark a single-payment (non-installment) order as paid/unpaid
+  app.patch("/api/treasury/shop/orders/:orderId/mark-paid", authenticateToken, requireTreasurer, async (req: AuthRequest, res) => {
+    try {
+      const orderId = parseInt(req.params.orderId);
+      if (isNaN(orderId)) {
+        return res.status(400).json({ message: "ID inválido" });
+      }
+
+      const order = await storage.getShopOrderById(orderId);
+      if (!order) {
+        return res.status(404).json({ message: "Pedido não encontrado" });
+      }
+
+      const installments = await storage.getShopInstallments(orderId);
+      if (installments.length > 0) {
+        return res.status(400).json({ message: "Use a rota de parcelas para pedidos parcelados" });
+      }
+
+      const { status } = req.body;
+
+      if (status === "paid") {
+        if (order.paymentStatus === "paid") {
+          return res.status(400).json({ message: "Pedido já está marcado como pago" });
+        }
+
+        const paidAt = new Date();
+
+        await storage.updateShopOrder(orderId, {
+          paymentStatus: "paid",
+          orderStatus: "paid",
+          paidAt,
+        });
+
+        if (order.entryId) {
+          await storage.updateTreasuryEntry(order.entryId, {
+            paymentStatus: "paid",
+            paidAt,
+          });
+        } else {
+          const user = await storage.getUserById(order.userId);
+          const treasuryEntry = await storage.createTreasuryEntry({
+            type: "income",
+            category: "loja",
+            description: `Pedido ${order.orderCode} - Pagamento manual`,
+            amount: order.totalAmount,
+            userId: order.userId || undefined,
+            referenceYear: new Date().getFullYear(),
+            paymentMethod: "manual",
+            paymentStatus: "paid",
+            orderId: order.id,
+            paidAt,
+          });
+          await storage.updateShopOrder(orderId, { entryId: treasuryEntry.id });
+        }
+
+        return res.json({ message: "Pedido marcado como pago", paymentStatus: "paid" });
+      } else if (status === "pending") {
+        if (order.paymentStatus !== "paid") {
+          return res.status(400).json({ message: "Pedido não está marcado como pago" });
+        }
+
+        await storage.updateShopOrder(orderId, {
+          paymentStatus: "pending",
+          orderStatus: "awaiting_payment",
+          paidAt: null as any,
+        });
+
+        if (order.entryId) {
+          await storage.updateTreasuryEntry(order.entryId, {
+            paymentStatus: "cancelled",
+          });
+        }
+
+        return res.json({ message: "Pagamento revertido", paymentStatus: "pending" });
+      } else {
+        return res.status(400).json({ message: "Status inválido. Use 'paid' ou 'pending'" });
+      }
+    } catch (error) {
+      console.error("Mark shop order paid error:", error);
+      res.status(500).json({ message: "Erro ao atualizar pedido" });
+    }
+  });
+
   // OPTIMIZED: Send push notification to all members with overdue installments - batch queries
   app.post("/api/treasury/shop/notify-overdue", authenticateToken, requireTreasurer, async (req: AuthRequest, res) => {
     try {

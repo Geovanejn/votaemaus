@@ -58,7 +58,7 @@ interface Installment {
   installmentNumber: number;
   amount: number;
   dueDate: string;
-  status: "pending" | "paid" | "overdue";
+  status: "pending" | "paid" | "overdue" | "expired";
   paymentId: string | null;
   pixCode: string | null;
   pixQrCodeBase64: string | null;
@@ -124,6 +124,7 @@ const installmentStatusLabels: Record<string, { label: string; variant: "default
   pending: { label: "Pendente", variant: "secondary" },
   paid: { label: "Paga", variant: "default", className: "bg-green-600 hover:bg-green-700 text-white" },
   overdue: { label: "Atrasada", variant: "destructive" },
+  expired: { label: "Vencida", variant: "destructive" },
   cancelled: { label: "Cancelado", variant: "destructive" },
 };
 
@@ -504,7 +505,8 @@ export default function MeusPedidosPage() {
                     <div className="space-y-2">
                       {selectedOrder.installments.map((inst) => {
                         const isInstExpired = inst.pixExpiresAt ? new Date(inst.pixExpiresAt) < new Date() : true;
-                        const needsNewPix = inst.status === "pending" && (!inst.pixCode || isInstExpired);
+                        const isPayable = inst.status === "pending" || inst.status === "expired";
+                        const needsNewPix = isPayable && (!inst.pixCode || isInstExpired);
                         
                         return (
                           <div 
@@ -540,7 +542,7 @@ export default function MeusPedidosPage() {
                               )}
                             </div>
 
-                            {inst.status === "pending" && pixStatus?.configured && selectedOrder.paymentStatus !== "cancelled" && selectedOrder.orderStatus !== "cancelled" && (
+                            {isPayable && pixStatus?.configured && selectedOrder.paymentStatus !== "cancelled" && selectedOrder.orderStatus !== "cancelled" && (
                               <div className="flex flex-wrap gap-2 mt-1">
                                 {needsNewPix ? (
                                   <Button

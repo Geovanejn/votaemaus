@@ -403,10 +403,15 @@ export default function PedidoCompartilhado() {
 
   const statusInfo = orderStatusLabels[order.orderStatus] || orderStatusLabels.awaiting_payment;
   const StatusIcon = statusInfo.icon;
-  const canPay = order.orderStatus === "awaiting_payment" || order.orderStatus === "installment_payment";
   const isInstallment = (order.installmentCount || 1) > 1;
   const pendingInstallments = order.installments?.filter((i) => i.status !== "paid") || [];
   const paidInstallments = order.installments?.filter((i) => i.status === "paid") || [];
+  // Allow payment when order is awaiting payment / installment-based, OR when it's an
+  // installment order with unpaid parcelas regardless of current order status (e.g. "delivered"
+  // marked before all installments were collected). Only block on "cancelled".
+  const canPay = order.orderStatus === "awaiting_payment" ||
+    order.orderStatus === "installment_payment" ||
+    (isInstallment && pendingInstallments.length > 0 && order.orderStatus !== "cancelled");
 
   return (
     <div className="dark min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 text-gray-100">
@@ -708,11 +713,20 @@ export default function PedidoCompartilhado() {
                     data-testid={`installment-${inst.id}`}
                   >
                     <div>
-                      <span className="font-semibold block text-gray-800">
-                        Parcela {inst.installmentNumber}/{order.installments.length}
-                      </span>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-semibold text-gray-800">
+                          Parcela {inst.installmentNumber}/{order.installments.length}
+                        </span>
+                        {inst.status === "paid" ? (
+                          <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-700">Paga</span>
+                        ) : inst.status === "expired" ? (
+                          <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-red-100 text-red-700">Vencida</span>
+                        ) : (
+                          <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-gray-200 text-gray-600">Pendente</span>
+                        )}
+                      </div>
                       <span className="text-xs text-gray-400">
-                        Vence: {formatDate(inst.dueDate)}
+                        Vencimento: {formatDate(inst.dueDate)}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">

@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Status da Aplicação</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    animation: {
+                        'glitch': 'glitch 0.3s cubic-bezier(.25, .46, .45, .94) both infinite',
+                    },
+                    keyframes: {
+                        glitch: {
+                            '0%': { transform: 'translate(0)' },
+                            '20%': { transform: 'translate(-2px, 2px)' },
+                            '40%': { transform: 'translate(-2px, -2px)' },
+                            '60%': { transform: 'translate(2px, 2px)' },
+                            '80%': { transform: 'translate(2px, -2px)' },
+                            '100%': { transform: 'translate(0)' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-950 text-white min-h-screen flex items-center justify-center font-sans overflow-hidden">
+
+    <div class="w-full max-w-lg px-6 flex flex-col items-center relative z-10">
+        
+        <div id="alert-icon" class="opacity-0 transition-opacity duration-300 mb-6 text-red-500">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+        </div>
+
+        <h1 id="status-message" class="text-xl md:text-2xl font-semibold mb-8 tracking-wide text-gray-400 text-center uppercase h-16 flex items-center justify-center transition-colors duration-300">
+            Iniciando serviços...
+        </h1>
+
+        <div class="relative w-full h-10 bg-gray-800 rounded-lg overflow-hidden shadow-[0_0_15px_rgba(0,0,0,0.5)] border border-gray-700">
+            
+            <div id="progress-fill" class="absolute top-0 left-0 h-full bg-emerald-500 w-0 transition-all duration-75 ease-out shadow-[0_0_10px_rgba(16,185,129,0.7)]">
+                <div class="absolute top-0 right-0 bottom-0 w-4 bg-white opacity-30"></div>
+            </div>
+            
+            <div class="absolute inset-0 flex items-center justify-center font-mono font-bold text-lg drop-shadow-lg z-10 text-white tracking-widest" id="progress-text">
+                0%
+            </div>
+        </div>
+
+        <div class="mt-8 w-full bg-gray-900 border border-gray-800 rounded p-4 font-mono text-xs md:text-sm text-gray-500 h-24 overflow-hidden relative">
+            <div id="terminal-log" class="flex flex-col gap-1">
+                <span class="text-emerald-400">> Conectando ao servidor... OK</span>
+                <span class="text-emerald-400">> Carregando assets... OK</span>
+                <span class="text-emerald-400">> Verificando permissões...</span>
+            </div>
+            <div class="absolute bottom-0 left-0 w-full h-8 bg-gradient-to-t from-gray-900 to-transparent"></div>
+        </div>
+
+    </div>
+
+    <script>
+        // Seletores DOM
+        const progressFill = document.getElementById('progress-fill');
+        const progressText = document.getElementById('progress-text');
+        const statusMessage = document.getElementById('status-message');
+        const alertIcon = document.getElementById('alert-icon');
+        const terminalLog = document.getElementById('terminal-log');
+
+        let progress = 0;
+        let loaderInterval;
+
+        function startSequence() {
+            // Reseta o estado para o início
+            progress = 0;
+            progressFill.style.width = '0%';
+            progressFill.className = 'absolute top-0 left-0 h-full bg-emerald-500 w-0 transition-all duration-75 ease-out shadow-[0_0_10px_rgba(16,185,129,0.7)]';
+            progressText.innerText = '0%';
+            progressText.classList.remove('text-red-100');
+            
+            statusMessage.innerText = 'Iniciando serviços...';
+            statusMessage.className = 'text-xl md:text-2xl font-semibold mb-8 tracking-wide text-gray-400 text-center uppercase h-16 flex items-center justify-center transition-colors duration-300';
+            
+            alertIcon.classList.replace('opacity-100', 'opacity-0');
+            alertIcon.classList.remove('animate-glitch');
+            
+            terminalLog.innerHTML = `
+                <span class="text-emerald-400">> Conectando ao servidor... OK</span>
+                <span class="text-emerald-400">> Carregando assets... OK</span>
+                <span class="text-emerald-400">> Verificando permissões...</span>
+            `;
+
+            // Inicia o carregamento
+            loaderInterval = setInterval(() => {
+                // Incremento aleatório para parecer um carregamento real (1 a 4%)
+                progress += Math.floor(Math.random() * 4) + 1;
+                
+                // Trava no 99%
+                if (progress >= 99) {
+                    progress = 99;
+                    clearInterval(loaderInterval);
+                    triggerErrorState();
+                }
+
+                // Atualiza a UI
+                progressFill.style.width = progress + '%';
+                progressText.innerText = progress + '%';
+
+            }, 60); // Velocidade do carregamento
+        }
+
+        function triggerErrorState() {
+            // Altera a UI para o estado de erro
+            progressFill.classList.replace('bg-emerald-500', 'bg-red-600');
+            progressFill.classList.replace('shadow-[0_0_10px_rgba(16,185,129,0.7)]', 'shadow-[0_0_15px_rgba(220,38,38,0.9)]');
+            
+            progressText.classList.add('text-red-100');
+            
+            statusMessage.innerText = 'Aplicação Desativada pelo programador';
+            statusMessage.classList.replace('text-gray-400', 'text-red-500');
+            statusMessage.classList.add('animate-pulse');
+            
+            alertIcon.classList.replace('opacity-0', 'opacity-100');
+            alertIcon.classList.add('animate-glitch');
+
+            terminalLog.innerHTML += `<br><span class="text-red-500 font-bold">> [ERRO FATAL] Acesso bloqueado pelas diretrizes do sistema.</span>`;
+            terminalLog.innerHTML += `<span class="text-red-500">> Reiniciando em 10 segundos...</span>`;
+
+            // Aguarda 10 segundos e reinicia o loop
+            setTimeout(() => {
+                startSequence();
+            }, 10000);
+        }
+
+        // Inicia a aplicação pela primeira vez
+        window.onload = startSequence;
+    </script>
+</body>
+</html>
